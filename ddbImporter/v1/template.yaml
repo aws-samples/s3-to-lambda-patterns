@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: patterns-ddb-importer-v1
+
+Parameters:
+  InputBucketName:
+    Type: String
+    Default: 'patterns-ddb-importer-v1'
+
+Resources:
+  InputS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref InputBucketName
+
+  DDBtable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: ID
+        AttributeType: S
+      KeySchema:
+      - AttributeName: ID
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  ImportFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: importFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 30
+      MemorySize: 512
+      Environment:
+        Variables:
+          DDBtable: !Ref DDBtable
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1 
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DDBtable        
+        - S3CrudPolicy:
+            BucketName: !Ref InputBucketName
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref InputS3Bucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.json'            

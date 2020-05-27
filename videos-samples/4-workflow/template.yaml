@@ -1,0 +1,143 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: S3-to-Lambda video - Example 4.
+
+Parameters:
+  InputBucketName:
+    Type: String
+    Default: 'svs214-ex4-workflow'
+
+Globals:
+  Function:
+    Timeout: 10
+
+Resources:
+  ## S3 buckets
+  InputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref InputBucketName
+
+  ## Lambda functions
+  ProcessFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: ProcessFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Environment:
+        Variables:
+          stateMachineArn: !Ref 'DogOrCatStateMachine'
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref InputBucketName
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - states:*
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref InputBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.jpg'            
+
+  DogFoundFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: foundFunction/
+      Handler: dog.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+
+  CatFoundFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: foundFunction/
+      Handler: cat.handler
+      Runtime: nodejs12.x
+      MemorySize: 128      
+
+  ## Step Functions state machine
+  DogOrCatStateMachine:
+    Type: 'AWS::StepFunctions::StateMachine'
+    Properties:
+      DefinitionString: !Sub |
+        {
+          "Comment": "Is it a dog or a cat?",
+          "StartAt": "IsDogOrCat",
+          "States": {
+            "IsDogOrCat": {
+              "Type": "Task",
+              "Resource": "arn:aws:lambda:us-west-2:763653534548:function:dogCatFunction",
+              "Next": "ChoiceState"
+            },
+            "ChoiceState": {
+              "Type" : "Choice",
+              "Choices": [
+                {
+                  "Variable": "$",
+                  "StringEquals": "Dog",
+                  "Next": "DogFound"
+                },
+                {
+                  "Variable": "$",
+                  "StringEquals": "Cat",
+                  "Next": "CatFound"
+                }
+              ],
+              "Default": "UnknownAnimal"
+            },
+
+            "DogFound": {
+              "Type" : "Task",
+              "Resource": "${DogFoundFunction.Arn}",
+              "Next": "NextState"
+            },
+
+            "CatFound": {
+              "Type" : "Task",
+              "Resource": "${CatFoundFunction.Arn}",
+              "Next": "NextState"
+            },
+
+            "UnknownAnimal": {
+              "Type": "Fail",
+              "Error": "DefaultStateError",
+              "Cause": "No Matches!"
+            },
+
+            "NextState": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !GetAtt 'StateMachineRole.Arn'
+
+  # IAM roles
+  StateMachineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: !Sub 'states.${AWS::Region}.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      Policies:
+      - PolicyName: lambda
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: 'lambda:InvokeFunction'
+            Resource:
+            - '*'

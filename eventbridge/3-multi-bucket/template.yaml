@@ -1,0 +1,131 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: S3-to-EventBridge Integration 3 - Multiple Buckets
+
+Parameters:
+  MultiBucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-multi'
+
+  LoggingBucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-ct-logs-3'
+
+Resources: 
+  # Bucket for CloudTrail Logs
+  MultiBucketName1: 
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${MultiBucketName}-1'
+
+  MultiBucketName2: 
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${MultiBucketName}-2'
+
+  MultiBucketName3: 
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${MultiBucketName}-3'
+
+  LoggingBucket: 
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref LoggingBucketName
+
+  # Bucket policy enables CloudTrail to write to the logging bucket
+  BucketPolicy: 
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: 
+        Ref: LoggingBucket
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Sid: "AWSCloudTrailAclCheck"
+            Effect: "Allow"
+            Principal: 
+              Service: "cloudtrail.amazonaws.com"
+            Action: "s3:GetBucketAcl"
+            Resource: 
+              !Sub 'arn:aws:s3:::${LoggingBucket}'
+          - 
+            Sid: "AWSCloudTrailWrite"
+            Effect: "Allow"
+            Principal: 
+              Service: "cloudtrail.amazonaws.com"
+            Action: "s3:PutObject"
+            Resource:
+              !Sub 'arn:aws:s3:::${LoggingBucket}/AWSLogs/${AWS::AccountId}/*'
+            Condition: 
+              StringEquals:
+                s3:x-amz-acl: "bucket-owner-full-control"
+
+  # The CloudTrail trail - uses the LoggingBucketName as the trail name
+  myTrail: 
+    Type: AWS::CloudTrail::Trail
+    DependsOn: 
+      - BucketPolicy
+    Properties: 
+      TrailName: !Ref LoggingBucketName
+      S3BucketName: 
+        Ref: LoggingBucket
+      IsLogging: true
+      IsMultiRegionTrail: false
+      EventSelectors:
+        - DataResources:
+          - Type: AWS::S3::Object
+            Values:
+              - !Sub 'arn:aws:s3:::${MultiBucketName}-1/'
+              - !Sub 'arn:aws:s3:::${MultiBucketName}-2/'
+              - !Sub 'arn:aws:s3:::${MultiBucketName}-3/'
+      IncludeGlobalServiceEvents: false
+
+  ### This section configures the consuming Lambda function ###
+
+  # Lambda function
+  EventConsumerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: eventConsumer/
+      Handler: app.handler
+      Runtime: nodejs12.x
+
+  # EventBridge rule - invokes EventConsumerFunction 
+  EventRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "EventRule"
+      State: "ENABLED"
+      EventPattern: 
+        source: 
+          - "aws.s3"
+        detail: 
+          eventName: 
+            - "PutObject"
+          requestParameters:
+            bucketName:
+              - !Sub '${MultiBucketName}-1'
+              - !Sub '${MultiBucketName}-2'
+              - !Sub '${MultiBucketName}-3'
+
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "EventConsumerFunction"
+              - "Arn"
+          Id: "EventConsumerFunctionTarget"
+
+  PermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "EventConsumerFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "EventRule"
+          - "Arn"

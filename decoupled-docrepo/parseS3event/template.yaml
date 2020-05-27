@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: docrepo-parseS3-event
+
+## Bucket names - override in sam deploy for custom names
+Parameters:
+  Dept1BucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-docs1'
+  Dept2BucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-docs2'
+  Dept3BucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-docs3'
+
+Resources:
+  # EventBridge rule and permission to invoke Lambda function
+  EventRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "docrepo-parseS3-event"
+      State: "ENABLED"
+      EventPattern: 
+        source: 
+          - "aws.s3"
+        detail: 
+          eventName: 
+            - "PutObject"
+          requestParameters:
+            bucketName:
+              - !Ref Dept1BucketName
+              - !Ref Dept2BucketName
+              - !Ref Dept3BucketName  
+      Targets: 
+        - Arn: 
+            Fn::GetAtt: 
+              - "ParseS3eventFunction"
+              - "Arn"
+          Id: "PDF"            
+
+  PermissionForEventsToInvokeLambda: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "ParseS3eventFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "EventRule"
+          - "Arn"
+
+  # Lambda functions
+  ParseS3eventFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: parserFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 5
+      MemorySize: 128
+      Policies:
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/patters-doc-repo'
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - events:PutEvents           

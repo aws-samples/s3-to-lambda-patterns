@@ -1,0 +1,125 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: docrepo-setup
+
+## Bucket names - override in sam deploy for custom names
+Parameters:
+  Dept1BucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-docs1'
+  Dept2BucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-docs2'
+  Dept3BucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-docs3'
+  LoggingBucketName:
+    Type: String
+    Default: 'patterns-s3-eventbridge-docs-logs'
+
+## S3 buckets
+Resources:
+  Dept1Bucket:
+    Type: AWS::S3::Bucket  
+    Properties:
+      BucketName: !Ref Dept1BucketName
+  Dept2Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref Dept2BucketName
+  Dept3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref Dept3BucketName
+  LoggingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref LoggingBucketName
+
+# Bucket policy enables CloudTrail to write to the logging bucket
+  BucketPolicy: 
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: 
+        Ref: LoggingBucket
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: "AWSCloudTrailAclCheck"
+            Effect: "Allow"
+            Principal: 
+              Service: "cloudtrail.amazonaws.com"
+            Action: "s3:GetBucketAcl"
+            Resource: 
+              !Sub 'arn:aws:s3:::${LoggingBucket}'
+          - Sid: "AWSCloudTrailWrite"
+            Effect: "Allow"
+            Principal: 
+              Service: "cloudtrail.amazonaws.com"
+            Action: "s3:PutObject"
+            Resource:
+              !Sub 'arn:aws:s3:::${LoggingBucket}/AWSLogs/${AWS::AccountId}/*'
+            Condition: 
+              StringEquals:
+                s3:x-amz-acl: "bucket-owner-full-control"
+
+  # The CloudTrail trail - uses the LoggingBucketName as the trail name
+  # Specify the buckets you want to monitor in the EventSelectors Values array
+
+  myTrail: 
+    Type: AWS::CloudTrail::Trail
+    DependsOn: 
+      - BucketPolicy
+    Properties: 
+      TrailName: !Ref LoggingBucketName
+      S3BucketName: 
+        Ref: LoggingBucket
+      IsLogging: true
+      IsMultiRegionTrail: false
+      EventSelectors:
+        - IncludeManagementEvents: false
+          DataResources:
+          - Type: AWS::S3::Object
+            Values:
+              - !Sub 'arn:aws:s3:::${Dept1BucketName}/'
+              - !Sub 'arn:aws:s3:::${Dept2BucketName}/'
+              - !Sub 'arn:aws:s3:::${Dept3BucketName}/'
+      IncludeGlobalServiceEvents: false
+
+# Used by any target functions to access the S3
+# buckets. If more buckets need to be added, add here
+# instead of at each function.
+
+  MyManagedPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: docrepo-s3-read-policy
+      PolicyDocument: 
+        Version: 2012-10-17
+        Statement: 
+          - Effect: Allow
+            Action:
+              - s3:GetObject
+              - s3:ListBucket
+              - s3:GetBucketLocation
+              - s3:GetObjectVersion
+              - s3:GetLifecycleConfiguration
+            Resource:
+              - !Sub 'arn:aws:s3:::${Dept1Bucket}/*'
+              - !Sub 'arn:aws:s3:::${Dept2Bucket}/*'
+              - !Sub 'arn:aws:s3:::${Dept3Bucket}/*'
+
+## Outputs
+Outputs: 
+  Dept1BucketName:
+    Description: Department 1 documents bucket
+    Value: !Ref Dept1Bucket
+  Dept2BucketName:
+    Description: Department 2 documents bucket
+    Value: !Ref Dept2Bucket
+  Dept3BucketName:
+    Description: Department 3 documents bucket
+    Value: !Ref Dept3Bucket
+  LoggingBucketName:
+    Description: CloudTrail logging bucket
+    Value: !Ref LoggingBucket      

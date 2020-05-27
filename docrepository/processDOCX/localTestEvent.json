@@ -1,0 +1,38 @@
+{
+    "Records": [
+        {
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-east-1",
+            "eventTime": "2020-03-24T21:13:27.583Z",
+            "eventName": "ObjectCreated:Put",
+            "userIdentity": {
+                "principalId": "AWS:AROA3DTKMGNKB5FPBYP5N:jbeswick-Isengard"
+            },
+            "requestParameters": {
+                "sourceIPAddress": "72.21.196.68"
+            },
+            "responseElements": {
+                "x-amz-request-id": "997D884424BA0C20",
+                "x-amz-id-2": "BCod/oeO5zmzrh6xdo3/LEnuCFAJjhP0j8R4/iFRaKIJIteCimalKSY9RFT+4M7PkKgp9Pguo14X/TrJ7amz+22pFVXq6YPU"
+            },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "8eea1408-df95-4e20-ad26-ae2366f826db",
+                "bucket": {
+                    "name": "patterns-s3docrepo-documents",
+                    "ownerIdentity": {
+                        "principalId": "ASRUZ4ZWI5GFR"
+                    },
+                    "arn": "arn:aws:s3:::patterns-s3docrepo-documents"
+                },
+                "object": {
+                    "key": "Content+plan+-+jbeswick.docx",
+                    "size": 31683,
+                    "eTag": "6705cf08e82dc9a2073ed820000d52e4",
+                    "sequencer": "005E7A77FAB42CB097"
+                }
+            }
+        }
+    ]
+}

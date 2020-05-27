@@ -1,0 +1,38 @@
+{
+    "Records": [
+        {
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-east-1",
+            "eventTime": "2020-03-25T14:36:53.485Z",
+            "eventName": "ObjectCreated:Put",
+            "userIdentity": {
+                "principalId": "AWS:AROA3DTKMGNKB5FPBYP5N:jbeswick-Isengard"
+            },
+            "requestParameters": {
+                "sourceIPAddress": "72.21.196.67"
+            },
+            "responseElements": {
+                "x-amz-request-id": "86B20961CE337276",
+                "x-amz-id-2": "y3wrGsr+T6cAh43c9kTvTxAHKuin4DXHD1EzM4vwJS3Ec38WAJkab3rN68ASEbzrTSt1akkNVeRUe1soBzSOLAJcy35L/4ee"
+            },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "f1bfb2bd-2c3d-4d5e-ba7a-556d98fb080a",
+                "bucket": {
+                    "name": "patterns-s3docrepo-documents",
+                    "ownerIdentity": {
+                        "principalId": "ASRUZ4ZWI5GFR"
+                    },
+                    "arn": "arn:aws:s3:::patterns-s3docrepo-documents"
+                },
+                "object": {
+                    "key": "cat2.jpg",
+                    "size": 6320,
+                    "eTag": "17841737a65b94f868b2e390976d302b",
+                    "sequencer": "005E7B6C87BEBC56EA"
+                }
+            }
+        }
+    ]
+}

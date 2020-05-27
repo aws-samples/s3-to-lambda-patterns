@@ -1,0 +1,103 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: docrepo-converters
+
+Resources:
+  # EventBridge rules 
+  EventRulePDF: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "docrepo-converters-pdf"
+      State: "ENABLED"
+      EventPattern: 
+        source: 
+          - "docRepo.s3"
+        detail-type:
+          - PutObject
+        detail: 
+          type: 
+            - "pdf"
+      Targets: 
+        - Arn: 
+            Fn::GetAtt: 
+              - "ProcessPDFFunction"
+              - "Arn"
+          Id: "PDF"            
+
+  EventRuleDOCX: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "docrepo-converters-docx"
+      State: "ENABLED"
+      EventPattern: 
+        source: 
+          - "docRepo.s3"
+        detail-type:
+          - PutObject
+        detail: 
+          type: 
+            - "docx"
+      Targets: 
+        - Arn: 
+            Fn::GetAtt: 
+              - "ProcessDOCXFunction"
+              - "Arn"
+          Id: "DOCX"    
+
+  # EventBridge permissions to invoke Lambda functions
+  PermissionForEventsToInvokeLambdaPDF: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "ProcessPDFFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "EventRulePDF"
+          - "Arn"
+
+  PermissionForEventsToInvokeLambdaDOCX: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "ProcessDOCXFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "EventRuleDOCX"
+          - "Arn"          
+
+  # Lambda functions
+  ProcessPDFFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: processPDF/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 15
+      MemorySize: 512
+      Policies:
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/patters-doc-repo'
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - events:PutEvents           
+
+  ProcessDOCXFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: processDOCX/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 15
+      MemorySize: 512
+      Policies:
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/patters-doc-repo'
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - events:PutEvents           

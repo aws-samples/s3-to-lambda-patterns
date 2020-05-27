@@ -1,0 +1,16 @@
+{
+  "name": "process-docx",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "James Beswick",
+  "license": "MIT-0",
+  "dependencies": {
+    "aws-sdk": "^2.644.0",
+    "mammoth": "^1.4.9"
+  }
+}

@@ -1,0 +1,102 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: patterns-translation-at-scale-v1
+
+Parameters:
+  TargetLanguage:
+    Type: String
+    Default: 'fr es it'
+    # Entire list of language codes at:
+    # https://docs.aws.amazon.com/translate/latest/dg/how-it-works.html#how-it-works-language-codes
+    Description: (Required) A list of target language codes (separated by spaces)
+  TranslationBucketName:
+    Type: String
+    Default: 'patterns-translation-v1'
+  BatchingBucketName:
+    Type: String
+    Default: 'patterns-batching-v1'
+
+Globals:
+  Function:
+    Timeout: 15
+
+Resources:
+  ## S3 buckets
+  BatchingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BatchingBucketName
+  TranslationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref TranslationBucketName
+
+  ## Lambda functions
+  TranslatorFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: translatorFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Environment:
+        Variables:
+          targetLanguage: !Ref TargetLanguage
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref TranslationBucketName
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - translate:*
+              - comprehend:DetectDominantLanguage
+              - cloudwatch:GetMetricStatistics
+              - cloudwatch:ListMetrics
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref TranslationBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.txt'            
+
+  BatchingFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: batchingFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 512
+      Environment:
+        Variables:
+          OutputBucket: !Ref TranslationBucketName
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref TranslationBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref BatchingBucketName
+      Events:
+        OriginalTextUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref BatchingBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.txt'
+
+Outputs: 
+  TranslationBucketName:
+    Description: Translation Bucket Name
+    Value: !Ref TranslationBucket
+
+  BatchingBucketName:
+    Description: Batching Bucket Name
+    Value: !Ref BatchingBucket

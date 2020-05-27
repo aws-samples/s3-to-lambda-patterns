@@ -1,0 +1,53 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: docrepo-loaders
+
+Parameters:
+  ESdomain:
+    Type: String
+    Default: 'YOUR-ES-ENDPOINT.us-east-1.es.amazonaws.com'
+
+Resources:
+  # EventBridge rules 
+  EventRuleESloader: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "docrepo-loader"
+      State: "ENABLED"
+      EventPattern: 
+        source: 
+          - "docRepo.analyzers"
+      Targets: 
+        - Arn: 
+            Fn::GetAtt: 
+              - "LoadToESFunction"
+              - "Arn"
+          Id: "LoadToES"            
+
+  # EventBridge permissions to invoke Lambda functions
+  PermissionForEventsToInvokeLambda1: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "LoadToESFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "EventRuleESloader"
+          - "Arn"
+
+  # Lambda functions
+  LoadToESFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: loadToES/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 5
+      MemorySize: 128
+      Environment:
+        Variables:
+          domain: !Ref ESdomain        
+ 
+        

@@ -1,0 +1,155 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: patterns-s3-workflow.
+
+Parameters:
+  InputBucketName:
+    Type: String
+    Default: 'patterns-s3workflow'
+
+Globals:
+  Function:
+    Timeout: 15
+    MemorySize: 128
+    Runtime: nodejs12.x    
+
+Resources:
+  ## S3 buckets
+  InputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref InputBucketName
+
+  ## Lambda functions
+  StartExecutionFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: StartExecutionFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Environment:
+        Variables:
+          stateMachineArn: !Ref 'MatcherStateMachine'
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref InputBucketName
+        - Statement:
+          - Effect: Allow
+            Resource: !Ref 'MatcherStateMachine'
+            Action:
+              - states:*
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref InputBucket
+            Events: s3:ObjectCreated:*
+
+  DeciderFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: deciderFunction/
+      Handler: app.handler
+      Environment:
+        Variables:
+          requiredLabels: 'Cat Mammal'    
+          minConfidence: 70
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref InputBucketName        
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - rekognition:*
+
+  MatchFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: resultFunction/
+      Handler: match.handler
+
+  NoMatchFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: resultFunction/
+      Handler: noMatch.handler
+
+
+  ## Step Functions state machine
+  MatcherStateMachine:
+    Type: 'AWS::StepFunctions::StateMachine'
+    Properties:
+      DefinitionString: !Sub |
+        {
+          "Comment": "Does this match or not?",
+          "StartAt": "Decider",
+          "States": {
+            "Decider": {
+              "Type": "Task",
+              "Resource": "${DeciderFunction.Arn}",
+              "Next": "ChoiceState"
+            },
+            "ChoiceState": {
+              "Type" : "Choice",
+              "Choices": [
+                {
+                  "Variable": "$",
+                  "StringEquals": "Match",
+                  "Next": "MatchFound"
+                },
+                {
+                  "Variable": "$",
+                  "StringEquals": "NoMatch",
+                  "Next": "NoMatchFound"
+                }
+              ],
+              "Default": "Unknown"
+            },
+
+            "MatchFound": {
+              "Type" : "Task",
+              "Resource": "${MatchFunction.Arn}",
+              "Next": "NextState"
+            },
+
+            "NoMatchFound": {
+              "Type" : "Task",
+              "Resource": "${NoMatchFunction.Arn}",
+              "Next": "NextState"
+            },
+
+            "Unknown": {
+              "Type": "Fail",
+              "Error": "DefaultStateError",
+              "Cause": "Failed test!"
+            },
+
+            "NextState": {
+              "Type": "Pass",
+              "End": true
+            }
+          }
+        }
+      RoleArn: !GetAtt 'StateMachineRole.Arn'
+
+  # IAM roles
+  StateMachineRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: !Sub 'states.${AWS::Region}.amazonaws.com'
+          Action: 'sts:AssumeRole'
+      Policies:
+      - PolicyName: lambda
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: 'lambda:InvokeFunction'
+            Resource:
+            - '*'

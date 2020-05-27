@@ -1,0 +1,54 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: S3-to-Lambda video - Example 1 v1
+
+Parameters:
+  TargetLanguage:
+    Type: String
+    Default: 'fr es it'
+    Description: (Required) A list of target language codes (separated by spaces)
+  TranslationBucketName:
+    Type: String
+    Default: 'svs214-ex1-translation'
+
+Globals:
+  Function:
+    Timeout: 15
+
+Resources:
+  TranslationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref TranslationBucketName
+  TranslatorFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: translatorFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Environment:
+        Variables:
+          targetLanguage: !Ref TargetLanguage
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref TranslationBucketName
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - translate:*
+              - comprehend:DetectDominantLanguage
+              - cloudwatch:GetMetricStatistics
+              - cloudwatch:ListMetrics
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref TranslationBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.txt'            

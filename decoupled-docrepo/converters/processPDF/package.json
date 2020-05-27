@@ -1,0 +1,17 @@
+{
+  "name": "process-pdf",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "James Beswick",
+  "license": "MIT-0",
+  "dependencies": {
+    "aws-sdk": "^2.644.0",
+    "pdf-parse": "^1.1.1",
+    "sbd": "^1.0.17"
+  }
+}

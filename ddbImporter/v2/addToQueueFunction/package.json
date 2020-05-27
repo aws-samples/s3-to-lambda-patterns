@@ -1,0 +1,16 @@
+{
+  "name": "add-to-queue-function",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "James Beswick",
+  "license": "MIT-0",
+  "dependencies": {
+    "aws-sdk": "^2.639.0",
+    "uuid": "^7.0.2"
+  }
+}

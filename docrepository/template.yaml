@@ -1,0 +1,252 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: patterns-s3-docrepo
+
+Parameters:
+  DocumentsBucketName:
+    Type: String
+    Default: 'patterns-s3docrepo-documents'
+  StagingBucketName:
+    Type: String
+    Default: 'patterns-s3docrepo-staging'
+  QueuedBucketName:
+    Type: String
+    Default: 'patterns-s3docrepo-queued'
+  ESdomain:
+    Type: String
+    Default: '<<YOUR-ENDPOINT-HERE>>'
+
+Globals:
+  Function:
+    Timeout: 15
+    Environment:
+      Variables:
+        language: 'en'
+
+Resources:
+  ## S3 buckets
+  DocumentsBucket:
+    Type: AWS::S3::Bucket  
+    Properties:
+      BucketName: !Ref DocumentsBucketName
+  StagingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref StagingBucketName
+  QueuedBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref QueuedBucketName
+
+  ## SQS queue
+  MySqsQueue:
+    Type: AWS::SQS::Queue
+
+  # Lambda functions
+
+  queryESFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: queryESindex/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 10
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          domain: !Ref ESdomain
+      Events:
+        HttpApiEvent:
+          Type: HttpApi
+          Properties:
+            Path: /
+            Method: GET
+
+  AddToESFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: addToESindex/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 10
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          domain: !Ref ESdomain          
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref QueuedBucketName        
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - comprehend:*
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MySqsQueue.Arn
+            BatchSize: 1
+
+  BatchingFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: batchingFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 512
+      Environment:
+        Variables:
+          OutputBucket: !Ref QueuedBucketName
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref QueuedBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref StagingBucketName
+      Events:
+        OriginalTextUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref StagingBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.txt'
+
+  AddToQueueFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: addToQueueFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 15
+      MemorySize: 128
+      Environment:
+        Variables:
+          SQSqueueName: !Ref MySqsQueue
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt MySqsQueue.QueueName
+        - S3ReadPolicy:
+            BucketName: !Ref QueuedBucketName
+       
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref QueuedBucket
+            Events: s3:ObjectCreated:*
+
+  ProcessJPGFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: processJPG/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Environment:
+        Variables:
+          OutputBucket: !Ref QueuedBucketName
+          MaxLabels: 5
+          MinConfidence: 60
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref QueuedBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref DocumentsBucketName
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - rekognition:*
+      Events:
+        Upload:
+          Type: S3
+          Properties:
+            Bucket: !Ref DocumentsBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.jpg'
+
+  ProcessDOCXFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: processDOCX/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 512
+      Environment:
+        Variables:
+          OutputBucket: !Ref StagingBucketName
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref StagingBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref DocumentsBucketName
+      Events:
+        Upload:
+          Type: S3
+          Properties:
+            Bucket: !Ref DocumentsBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.docx'
+
+  ProcessPDFFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: processPDF/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 512
+      Environment:
+        Variables:
+          OutputBucket: !Ref StagingBucketName
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref StagingBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref DocumentsBucketName
+      Events:
+        Upload:
+          Type: S3
+          Properties:
+            Bucket: !Ref DocumentsBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.pdf'
+
+## Outputs
+Outputs: 
+  DocumentsBucketName:
+    Description: Documents Bucket Name
+    Value: !Ref DocumentsBucket
+
+  StagingBucketName:
+    Description: Staging Bucket Name
+    Value: !Ref StagingBucket
+
+  QueuedBucketName:
+    Description: Queued Bucket Name
+    Value: !Ref QueuedBucket
+
+  AddToESFunctionARN:
+    Description: This ARN needs permission in the Elasticsearch configuration.
+    Value: !GetAtt AddToESFunction.Arn
+
+  queryESFunctionARN:
+    Description: This ARN needs permission in the Elasticsearch configuration.
+    Value: !GetAtt queryESFunction.Arn

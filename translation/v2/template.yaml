@@ -1,0 +1,171 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: patterns-translation-at-scale-v2
+
+Parameters:
+  TargetLanguage:
+    Type: String
+    Default: 'fr es it'
+    # Entire list of language codes at:
+    # https://docs.aws.amazon.com/translate/latest/dg/how-it-works.html#how-it-works-language-codes
+    Description: (Required) A list of target language codes (separated by spaces)
+  TranslationBucketName:
+    Type: String
+    Default: 'patterns-translation-v2'
+  BatchingBucketName:
+    Type: String
+    Default: 'patterns-batching-v2'
+  ResultsBucketName:
+    Type: String
+    Default: 'patterns-results-v2'
+
+Globals:
+  Function:
+    Timeout: 15
+
+Resources:
+  ## S3 buckets
+  BatchingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BatchingBucketName
+  TranslationBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref TranslationBucketName
+  ResultsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref ResultsBucketName
+
+  ## SQS queue
+  MySqsQueue:
+    Type: AWS::SQS::Queue
+
+  ## SQS queue
+  DDBtable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: ID
+        AttributeType: S
+      - AttributeName: Language
+        AttributeType: S
+      KeySchema:
+      - AttributeName: ID
+        KeyType: HASH
+      - AttributeName: Language
+        KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST    
+
+  ## Lambda functions
+  TranslatorFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: translatorFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 128
+      Timeout: 10      
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          DDBtable: !Ref DDBtable
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1       
+          OutputBucket: !Ref ResultsBucketName          
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DDBtable   
+        - S3ReadPolicy:
+            BucketName: !Ref TranslationBucketName
+        - S3CrudPolicy:
+            BucketName: !Ref ResultsBucketName
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - translate:*
+              - comprehend:DetectDominantLanguage
+              - cloudwatch:GetMetricStatistics
+              - cloudwatch:ListMetrics
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MySqsQueue.Arn
+            BatchSize: 1
+
+  BatchingFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: batchingFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      MemorySize: 512
+      Environment:
+        Variables:
+          OutputBucket: !Ref TranslationBucketName
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref TranslationBucketName
+        - S3ReadPolicy:
+            BucketName: !Ref BatchingBucketName
+      Events:
+        OriginalTextUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref BatchingBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.txt'
+
+  AddToQueueFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: addToQueueFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 15
+      MemorySize: 128
+      Environment:
+        Variables:
+          SQSqueueName: !Ref MySqsQueue
+          targetLanguage: !Ref TargetLanguage
+          DDBtable: !Ref DDBtable
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1       
+      Policies:
+        ## Read more about SAM Policy templates at:
+        ## https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt MySqsQueue.QueueName
+        - S3ReadPolicy:
+            BucketName: !Ref TranslationBucketName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DDBtable               
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref TranslationBucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.txt'         
+
+Outputs: 
+  TranslationBucketName:
+    Description: Translation Bucket Name
+    Value: !Ref TranslationBucket
+
+  BatchingBucketName:
+    Description: Batching Bucket Name
+    Value: !Ref BatchingBucket
+
+  ResultsBucketName:
+    Description: Results Bucket Name
+    Value: !Ref ResultsBucket

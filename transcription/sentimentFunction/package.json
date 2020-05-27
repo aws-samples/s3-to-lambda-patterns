@@ -1,0 +1,16 @@
+{
+  "name": "sentiment-function",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "dependencies": {
+    "aws-sdk": "^2.640.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "James Beswick",
+  "license": "MIT-0"
+}

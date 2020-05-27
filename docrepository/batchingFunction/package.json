@@ -1,0 +1,15 @@
+{
+  "name": "batching-function",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "James Beswick",
+  "license": "MIT-0",
+  "dependencies": {
+    "aws-sdk": "^2.576.0",
+    "sbd": "^1.0.16"
+  }
+}

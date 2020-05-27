@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: patterns-ddb-importer-v2
+
+Parameters:
+  InputBucketName:
+    Type: String
+    Default: 'patterns-ddb-importer-v2'
+
+Resources:
+  InputS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref InputBucketName
+
+  MySqsQueue:
+    Type: AWS::SQS::Queue
+
+  DDBtable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: ID
+        AttributeType: S
+      KeySchema:
+      - AttributeName: ID
+        KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+
+  AddToQueueFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: addToQueueFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          SQSqueueName: !Ref MySqsQueue
+      Policies:
+        ## Read more about SAM Policy templates at:
+        ## https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-policy-templates.html
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt MySqsQueue.QueueName
+        - S3ReadPolicy:
+            BucketName: !Ref InputBucketName
+      Events:
+        FileUpload:
+          Type: S3
+          Properties:
+            Bucket: !Ref InputS3Bucket
+            Events: s3:ObjectCreated:*
+            Filter: 
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.json'            
+
+  LoaderFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: loaderFunction/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 10
+      MemorySize: 128
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          DDBtable: !Ref DDBtable
+          AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1 
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DDBtable        
+        - SQSPollerPolicy:
+            QueueName: !GetAtt MySqsQueue.QueueName
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt MySqsQueue.Arn
+            BatchSize: 4     

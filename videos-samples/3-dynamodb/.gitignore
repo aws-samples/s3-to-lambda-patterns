@@ -1,0 +1,5 @@
+.serverless
+package-lock.json
+node_modules
+testData
+.aws-sam

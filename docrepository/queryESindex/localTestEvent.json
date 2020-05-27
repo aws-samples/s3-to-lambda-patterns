@@ -1,0 +1,41 @@
+{
+    "version": "2.0",
+    "routeKey": "GET /",
+    "rawPath": "/",
+    "rawQueryString": "q=engineering",
+    "headers": {
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br",
+        "cache-control": "no-cache",
+        "content-length": "0",
+        "host": "lfkvg2pz3f.execute-api.us-east-1.amazonaws.com",
+        "postman-token": "8f2890e4-22f5-40e2-a5e8-8459dd0ec5c0",
+        "user-agent": "PostmanRuntime/7.22.0",
+        "x-amzn-trace-id": "Root=1-5e7d2299-b9081ae45e448102063fe3da",
+        "x-forwarded-for": "72.21.196.65",
+        "x-forwarded-port": "443",
+        "x-forwarded-proto": "https"
+    },
+    "queryStringParameters": {
+        "q": "engineering"
+    },
+    "requestContext": {
+        "accountId": "763653534548",
+        "apiId": "lfkvg2pz3f",
+        "domainName": "lfkvg2pz3f.execute-api.us-east-1.amazonaws.com",
+        "domainPrefix": "lfkvg2pz3f",
+        "http": {
+            "method": "GET",
+            "path": "/",
+            "protocol": "HTTP/1.1",
+            "sourceIp": "72.21.196.65",
+            "userAgent": "PostmanRuntime/7.22.0"
+        },
+        "requestId": "KBJX7hJAoAMEJIg=",
+        "routeKey": "GET /",
+        "stage": "$default",
+        "time": "26/Mar/2020:21:46:01 +0000",
+        "timeEpoch": 1585259161085
+    },
+    "isBase64Encoded": false
+}

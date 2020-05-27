@@ -1,0 +1,117 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: docrepo-analyzers
+
+Resources:
+  # EventBridge rules 
+  EventRuleAnalyzeText: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "docrepo-analyzers-text"
+      State: "ENABLED"
+      EventPattern: 
+        source: 
+          - "docRepo.converters"
+        detail-type:
+          - "NewTextBatch"
+      Targets: 
+        - Arn: 
+            Fn::GetAtt: 
+              - "AnalyzeTextFunction"
+              - "Arn"
+          Id: "AnalyzeText"            
+
+  EventRuleAnalyzeImage: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "docrepo-analyzers-image"
+      State: "ENABLED"
+      EventPattern: 
+        source: 
+          - "docRepo.s3"
+        detail-type:
+          - PutObject
+        detail: 
+          type: 
+            - "jpg"
+            - "jpeg"
+      Targets: 
+        - Arn: 
+            Fn::GetAtt: 
+              - "AnalyzeImageFunction"
+              - "Arn"
+          Id: "AnalyzeImage"    
+
+  # EventBridge permissions to invoke Lambda functions
+  PermissionForEventsToInvokeLambda1: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "AnalyzeTextFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "EventRuleAnalyzeText"
+          - "Arn"
+
+  PermissionForEventsToInvokeLambda2: 
+    Type: AWS::Lambda::Permission
+    Properties: 
+      FunctionName: 
+        Ref: "AnalyzeImageFunction"
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: 
+        Fn::GetAtt: 
+          - "EventRuleAnalyzeImage"
+          - "Arn"          
+
+  # Lambda functions
+  AnalyzeTextFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: analyzeText/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 15
+      MemorySize: 512
+      Environment:
+        Variables:
+          language: 'en'
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - events:PutEvents
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - comprehend:*              
+
+  AnalyzeImageFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: analyzeImage/
+      Handler: app.handler
+      Runtime: nodejs12.x
+      Timeout: 15
+      MemorySize: 512
+      Environment:
+        Variables:
+          MaxLabels: 5
+          MinConfidence: 70
+      Policies:
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/patters-doc-repo'
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - events:PutEvents
+        - Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - rekognition:*                 

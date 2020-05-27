@@ -1,0 +1,38 @@
+{
+    "Records": [
+        {
+            "eventVersion": "2.1",
+            "eventSource": "aws:s3",
+            "awsRegion": "us-east-1",
+            "eventTime": "2020-03-25T11:43:21.655Z",
+            "eventName": "ObjectCreated:Put",
+            "userIdentity": {
+                "principalId": "AWS:AROA3DTKMGNKB5FPBYP5N:jbeswick-Isengard"
+            },
+            "requestParameters": {
+                "sourceIPAddress": "72.21.198.71"
+            },
+            "responseElements": {
+                "x-amz-request-id": "014A7CB364774A53",
+                "x-amz-id-2": "K7o33Nfg1dgGGJjAcCYEy/LpcKsB9plFdUkQZ3NY0mtYp0SW6ApIatOl7IRYMaTSfDwJcjLjmmA1U/pcwCYjKcrlpfOYV6tY"
+            },
+            "s3": {
+                "s3SchemaVersion": "1.0",
+                "configurationId": "5faaac81-003d-444f-a85b-ccc35bfc036f",
+                "bucket": {
+                    "name": "patterns-s3docrepo-documents",
+                    "ownerIdentity": {
+                        "principalId": "ASRUZ4ZWI5GFR"
+                    },
+                    "arn": "arn:aws:s3:::patterns-s3docrepo-documents"
+                },
+                "object": {
+                    "key": "Keith+Kochan_Resume1.pdf",
+                    "size": 328166,
+                    "eTag": "bb0168b06b7384229845270f7a0ed631",
+                    "sequencer": "005E7B43DE7209615C"
+                }
+            }
+        }
+    ]
+}

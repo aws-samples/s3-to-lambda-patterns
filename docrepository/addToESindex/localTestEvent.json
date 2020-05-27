@@ -1,0 +1,20 @@
+{
+  "Records": [
+      {
+          "messageId": "76785af7-97cd-45b0-bf0f-0d323a84ea85",
+          "receiptHandle": "AQEBhoEtFLbIf0Aj2Btdv5hgca7WseufMF4fizlboHPvrXzq7gu+rJv3AwtWP7yofXexa2VOm/wk6wWJY7hPljp10Ks4te5qExweSP52YXzXMI7auNkUZClTkfW9dTpqj8j/Y53PgeUQAgdfbI0sxW2ANU/FqP1hRZOIyxInDv8ZdLYm0NxvRN6oCeUgr5J9aXeWa+OXuSmjRbgH3jfB7+7WR64Z2T3yoWyWpvajW+KILUP6ZC7pR3JIuqUQWLGSs3UViMQN/WJFzCQQppPfF8UjDLWIyg96s/7oyhiPl7f7aYLI0t1EMzAYTWCnk6dCGY5GyGdIZnxsgzi6WgLQVtgMcHHvN0JXXvQmnY1kD1IDZfMJAwJMqrvOl2asMJh7Wd9+2kSXONwG5w48VaSTOuilFCiuLOmeTLnKgDOcxBV14Uk=",
+          "body": "{\"Bucket\":\"patterns-s3docrepo-queued\",\"Key\":\"pdf/Keith+Kochan_Resume1.pdf-1.txt\",\"Language\":\"en\"}",
+          "attributes": {
+              "ApproximateReceiveCount": "2",
+              "SentTimestamp": "1585137238821",
+              "SenderId": "AROA3DTKMGNKAIIPN6YCH:patterns-docrepo-AddToQueueFunction-KL1C5XSJUNFQ",
+              "ApproximateFirstReceiveTimestamp": "1585137359263"
+          },
+          "messageAttributes": {},
+          "md5OfBody": "e39aa57405f4963788bbaa0f7737a50c",
+          "eventSource": "aws:sqs",
+          "eventSourceARN": "arn:aws:sqs:us-east-1:763653534548:patterns-docrepo-MySqsQueue-1SCU9TEEL6GTN",
+          "awsRegion": "us-east-1"
+      }
+  ]
+}

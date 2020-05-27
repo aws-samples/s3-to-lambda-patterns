@@ -1,0 +1,49 @@
+{
+  "version": "0",
+  "id": "fef4d054-21d0-2d9d-39e6-123456789012",
+  "detail-type": "NewImage",
+  "source": "docRepo.analyzers",
+  "account": "123456789012",
+  "time": "2020-04-06T16:37:05Z",
+  "region": "us-east-1",
+  "resources": [],
+  "detail": {
+      "bucket": "patterns-s3-eventbridge-docs1",
+      "key": "cat7.jpg",
+      "type": "jpg",
+      "labels": [
+          {
+              "Name": "Pet",
+              "Confidence": 89.64221954345703
+          },
+          {
+              "Name": "Animal",
+              "Confidence": 89.64221954345703
+          },
+          {
+              "Name": "Cat",
+              "Confidence": 89.1777114868164
+          },
+          {
+              "Name": "Mammal",
+              "Confidence": 89.1777114868164
+          },
+          {
+              "Name": "Angora",
+              "Confidence": 75.19511413574219
+          },
+          {
+              "Name": "Kitten",
+              "Confidence": 69.71725463867188
+          },
+          {
+              "Name": "Doctor",
+              "Confidence": 58.86582565307617
+          },
+          {
+              "Name": "Abyssinian",
+              "Confidence": 57.892578125
+          }
+      ]
+  }
+}
