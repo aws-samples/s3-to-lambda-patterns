@@ -1,6 +1,6 @@
 # S3-to-EventBridge - Patterns for advanced use-cases
 
-This repo contains 4 AWS SAM templates that deploy serverless applications. The applications illustrate difference ways to integrate S3 event producers and Lambda event consumers.
+This repo contains 4 AWS SAM templates that deploy serverless applications. The applications illustrate different ways to integrate S3 event producers and Lambda event consumers.
 
 For full details on how this works, read the article at: https://aws.amazon.com/blogs/compute/using-dynamic-amazon-s3-event-handling-with-amazon-eventbridge/.
 
