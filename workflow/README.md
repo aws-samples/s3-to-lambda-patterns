@@ -2,7 +2,7 @@
 
 This repo contains an AWS SAM template that deploys a serverless application. This application uses Amazon Rekognition to match incoming documents, and then using Step Functions to run the appropriate next steps. This example is designed to demonstrate how to configure the state machine and required Lambda functions.
 
-This architecture is designed for to scale for large numbers of S3 objects. For full details on how this works, read the article at: TBD.
+This architecture is designed to scale to a large numbers of S3 objects. For full details on how this works, read the article at: TBD.
 
 Important: this application uses various AWS services and there are costs associated with these services after the Free Tier usage - please see the [AWS Pricing page](https://aws.amazon.com/pricing/) for details. You are responsible for any AWS costs incurred. No warranty is implied in this example.
 
