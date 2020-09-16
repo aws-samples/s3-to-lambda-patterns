@@ -26,7 +26,7 @@ See a video of how to use this repo at: https://youtu.be/f0sE_dNrimU.
 
 1. Clone the repo onto your local development machine using `git clone`.
 
-1. There are two applications: v1 imports directly in the DynamoDB table, while v2 uses SQS to smooth out the loading process. A detailed description of these applications is available at *LINK TBD*.
+1. There are two applications: v1 imports directly in the DynamoDB table, while v2 uses SQS to smooth out the loading process. A detailed description of these applications is available at https://aws.amazon.com/blogs/compute/creating-a-scalable-serverless-import-process-for-amazon-dynamodb/.
 
 1. From the command line, change directory into v1 or v2 depending on the version required, then run:
 ```
