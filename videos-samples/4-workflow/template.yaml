@@ -22,7 +22,7 @@ Resources:
   ProcessFunction:
     Type: AWS::Serverless::Function 
     Properties:
-      CodeUri: ProcessFunction/
+      CodeUri: processFunction/
       Handler: app.handler
       Runtime: nodejs12.x
       MemorySize: 128
