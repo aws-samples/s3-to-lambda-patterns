@@ -79,7 +79,7 @@ Resources:
       Timeout: 15
       MemorySize: 512
       Policies:
-        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/patters-doc-repo'
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/docrepo-s3-read-policy'
         - Statement:
           - Effect: Allow
             Resource: '*'
@@ -95,7 +95,7 @@ Resources:
       Timeout: 15
       MemorySize: 512
       Policies:
-        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/patters-doc-repo'
+        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/docrepo-s3-read-policy'
         - Statement:
           - Effect: Allow
             Resource: '*'
