@@ -74,7 +74,8 @@ Resources:
       IsLogging: true
       IsMultiRegionTrail: false
       EventSelectors:
-        - DataResources:
+        - IncludeManagementEvents: false
+          DataResources:
           - Type: AWS::S3::Object
             Values:
               - !Sub 'arn:aws:s3:::${MultiBucketName}-1/'
