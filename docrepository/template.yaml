@@ -244,8 +244,12 @@ Outputs:
     Value: !Ref QueuedBucket
 
   AddToESFunctionARN:
-    Description: This ARN needs permission in the Elasticsearch configuration.
+    Description: This AddToESFunction function ARN.
     Value: !GetAtt AddToESFunction.Arn
+
+  AddToESFunctionRoleARN:
+    Description: This ARN needs permission in the Elasticsearch configuration.
+    Value: !GetAtt AddToESFunctionRole.Arn
 
   queryESFunctionARN:
     Description: This ARN needs permission in the Elasticsearch configuration.
