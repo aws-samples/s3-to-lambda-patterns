@@ -37,7 +37,7 @@ const getUploadURL = async function() {
     Bucket: uploadBucket,
     Key:  `${actionId}.jpg`,
     ContentType: 'image/jpeg',
-    CacheControl: 'max-age=31104000',
+//    CacheControl: 'max-age=31104000',
 //    ACL: 'public-read',   // Optional if you want the object to be publicly readable
   };
 
