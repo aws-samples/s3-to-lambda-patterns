@@ -41,7 +41,21 @@ Follow the prompts in the deploy process to set the stack name, AWS Region and o
 
 ## How it works
 
-* Upload a JSON file (a JSON array ending with .json) to the target S3 bucket.
+* Upload a file (a JSON array) ending with .json to the target S3 bucket. Please note that the JSON file must contain a JSON array, so the format looks like this:
+
+```
+[
+  {
+    "name": "Alice",
+    "job": "Solutions Architect"
+  },
+  {
+    "name": "Bob",
+    "job": "Cloud Engineer"
+  }
+]
+```
+
 * After a few seconds you will see the contents imported into a DynamoDB table created by the SAM deploment.
 * This process uses on-demand provisioning in DynamoDB.
 
