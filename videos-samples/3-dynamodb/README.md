@@ -37,7 +37,21 @@ sam deploy --template-file packaged.yaml --capabilities CAPABILITY_IAM --stack-n
 
 ## How it works
 
-* Upload a JSON file (a JSON array ending with .json) to the target S3 bucket.
+* Upload a JSON file (a JSON array ending with .json) to the target S3 bucket. The expected file format is:
+
+```
+[
+  {
+    "name": "Alice",
+    "job": "Solutions Architect"
+  },
+  {
+    "name": "Bob",
+    "job": "Cloud Engineer"
+  }
+]
+```
+
 * After a few seconds you will see the contents imported into a DynamoDB table created by the SAM deploment.
 * This process uses on-demand provisioning in DynamoDB.
 
