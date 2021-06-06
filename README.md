@@ -21,6 +21,12 @@ https://www.youtube.com/playlist?list=PLJo-rJlep0EAY0nMNBv0MZ487l1tOFAjh
 
 All examples from the video series are located in the [videos-samples](./videos-samples) sub-directory.
 
+## Requirements
+
+* AWS CLI already configured with Administrator permission
+* [NodeJS 14.x installed](https://nodejs.org/en/download/)
+* AWS Serverless Application Model ([AWS SAM](https://aws.amazon.com/serverless/sam/)) installed
+
 ==============================================
 
 Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
