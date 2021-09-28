@@ -53,7 +53,7 @@ Modify the stack-name or region parameters as needed.
 
 1. Change directory into the parseS3event directory, then run:
 ``` 
-sam build
+sam build -u
 sam deploy --guided
 ```
 Follow the prompts in the deploy process to set the stack name, AWS Region, unique bucket names, Elasticsearch domain endpoint, and other parameters.
