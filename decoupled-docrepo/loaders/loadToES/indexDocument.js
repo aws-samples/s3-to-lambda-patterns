@@ -27,8 +27,8 @@ const indexDocument = async (event) => {
     request.method = 'PUT'
     request.path += event.index + '/' + type + '/' + event.id
     request.body = JSON.stringify(document)
-    request.headers['host'] = process.env.domain
-    request.headers['Content-Type'] = 'application/json';
+    request.headers['host'] = endpoint.host
+    request.headers['Content-Type'] = 'application/json'
     request.headers['Content-Length'] = Buffer.byteLength(request.body)
   
     const credentials = new AWS.EnvironmentCredentials('AWS')
