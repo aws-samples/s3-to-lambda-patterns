@@ -1,86 +1,79 @@
-AWSTemplateFormatVersion: "2010-09-09"
+AWSTemplateFormatVersion: 2010-09-09
 Transform: AWS::Serverless-2016-10-31
 Description: S3-to-EventBridge Integration 4 - Multiple Buckets, Multiple consumers
 
 Parameters:
   MultiBucketName:
     Type: String
-    Default: 'patterns-s3-eventbridge-multi2'
+    Default: patterns-s3-eventbridge-multi2
 
   LoggingBucketName:
     Type: String
-    Default: 'patterns-s3-eventbridge-ct-logs-3'
+    Default: patterns-s3-eventbridge-ct-logs-4
 
-Resources: 
+Resources:
   # Bucket for CloudTrail Logs
-  MultiBucketName1: 
+  MultiBucket1:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${MultiBucketName}-1'
+      BucketName: !Sub ${MultiBucketName}-1
 
-  MultiBucketName2: 
+  MultiBucket2:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${MultiBucketName}-2'
+      BucketName: !Sub ${MultiBucketName}-2
 
-  MultiBucketName3: 
+  MultiBucket3:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub '${MultiBucketName}-3'
+      BucketName: !Sub ${MultiBucketName}-3
 
-  LoggingBucket: 
+  LoggingBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Ref LoggingBucketName
 
   # Bucket policy enables CloudTrail to write to the logging bucket
-  BucketPolicy: 
+  BucketPolicy:
     Type: AWS::S3::BucketPolicy
-    Properties: 
-      Bucket: 
-        Ref: LoggingBucket
-      PolicyDocument: 
-        Version: "2012-10-17"
-        Statement: 
-          - 
-            Sid: "AWSCloudTrailAclCheck"
-            Effect: "Allow"
-            Principal: 
-              Service: "cloudtrail.amazonaws.com"
-            Action: "s3:GetBucketAcl"
-            Resource: 
-              !Sub 'arn:aws:s3:::${LoggingBucket}'
-          - 
-            Sid: "AWSCloudTrailWrite"
-            Effect: "Allow"
-            Principal: 
-              Service: "cloudtrail.amazonaws.com"
-            Action: "s3:PutObject"
-            Resource:
-              !Sub 'arn:aws:s3:::${LoggingBucket}/AWSLogs/${AWS::AccountId}/*'
-            Condition: 
+    Properties:
+      Bucket: !Ref LoggingBucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: AWSCloudTrailAclCheck
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !GetAtt LoggingBucket.Arn
+          - Sid: AWSCloudTrailWrite
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub ${LoggingBucket.Arn}/AWSLogs/${AWS::AccountId}/*
+            Condition:
               StringEquals:
-                s3:x-amz-acl: "bucket-owner-full-control"
+                s3:x-amz-acl: bucket-owner-full-control
 
   # The CloudTrail trail - uses the LoggingBucketName as the trail name
-  myTrail: 
+  myTrail:
     Type: AWS::CloudTrail::Trail
-    DependsOn: 
-      - BucketPolicy
-    Properties: 
+    DependsOn: BucketPolicy
+    Properties:
       TrailName: !Ref LoggingBucketName
-      S3BucketName: 
-        Ref: LoggingBucket
+      S3BucketName: !Ref LoggingBucket
       IsLogging: true
       IsMultiRegionTrail: false
       EventSelectors:
         - IncludeManagementEvents: false
           DataResources:
-          - Type: AWS::S3::Object
-            Values:
-              - !Sub 'arn:aws:s3:::${MultiBucketName}-1/'
-              - !Sub 'arn:aws:s3:::${MultiBucketName}-2/'
-              - !Sub 'arn:aws:s3:::${MultiBucketName}-3/'
+            - Type: AWS::S3::Object
+              Values:
+                - !Sub ${MultiBucket1.Arn}/
+                - !Sub ${MultiBucket2.Arn}/
+                - !Sub ${MultiBucket3.Arn}/
       IncludeGlobalServiceEvents: false
 
   ### This section configures the consuming Lambda function ###
@@ -91,89 +84,67 @@ Resources:
     Properties:
       CodeUri: eventConsumer1/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
 
   EventConsumerFunction2:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: eventConsumer2/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
 
   EventConsumerFunction3:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: eventConsumer3/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
 
   # EventBridge rule - invokes EventConsumerFunction 
-  EventRule: 
+  EventRule:
     Type: AWS::Events::Rule
-    Properties: 
-      Description: "EventRule"
-      State: "ENABLED"
-      EventPattern: 
-        source: 
-          - "aws.s3"
-        detail: 
-          eventName: 
-            - "PutObject"
+    Properties:
+      Description: EventRule
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.s3
+        detail:
+          eventName:
+            - PutObject
           requestParameters:
             bucketName:
-              - !Sub '${MultiBucketName}-1'
-              - !Sub '${MultiBucketName}-2'
-              - !Sub '${MultiBucketName}-3'
+              - !Ref MultiBucket1
+              - !Ref MultiBucket2
+              - !Ref MultiBucket3
+      Targets:
+        - Arn: !GetAtt EventConsumerFunction1.Arn
+          Id: EventConsumerFunctionTarget1
+        - Arn: !GetAtt EventConsumerFunction2.Arn
+          Id: EventConsumerFunctionTarget2
+        - Arn: !GetAtt EventConsumerFunction3.Arn
+          Id: EventConsumerFunctionTarget3
 
-      Targets: 
-        - Arn: 
-            Fn::GetAtt: 
-              - "EventConsumerFunction1"
-              - "Arn"
-          Id: "EventConsumerFunctionTarget1"
-        - Arn: 
-            Fn::GetAtt: 
-              - "EventConsumerFunction2"
-              - "Arn"
-          Id: "EventConsumerFunctionTarget2"
-        - Arn: 
-            Fn::GetAtt: 
-              - "EventConsumerFunction3"
-              - "Arn"
-          Id: "EventConsumerFunctionTarget3"
-
-  PermissionForEventsToInvokeLambda1: 
+  PermissionForEventsToInvokeLambda1:
     Type: AWS::Lambda::Permission
-    Properties: 
-      FunctionName: 
-        Ref: "EventConsumerFunction1"
-      Action: "lambda:InvokeFunction"
-      Principal: "events.amazonaws.com"
-      SourceArn: 
-        Fn::GetAtt: 
-          - "EventRule"
-          - "Arn"
+    Properties:
+      FunctionName: !Ref EventConsumerFunction1
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRule.Arn
 
-  PermissionForEventsToInvokeLambda2: 
+  PermissionForEventsToInvokeLambda2:
     Type: AWS::Lambda::Permission
-    Properties: 
-      FunctionName: 
-        Ref: "EventConsumerFunction2"
-      Action: "lambda:InvokeFunction"
-      Principal: "events.amazonaws.com"
-      SourceArn: 
-        Fn::GetAtt: 
-          - "EventRule"
-          - "Arn"
+    Properties:
+      FunctionName: !Ref EventConsumerFunction2
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRule.Arn
 
-  PermissionForEventsToInvokeLambda3: 
+  PermissionForEventsToInvokeLambda3:
     Type: AWS::Lambda::Permission
-    Properties: 
-      FunctionName: 
-        Ref: "EventConsumerFunction3"
-      Action: "lambda:InvokeFunction"
-      Principal: "events.amazonaws.com"
-      SourceArn: 
-        Fn::GetAtt: 
-          - "EventRule"
-          - "Arn"
+    Properties:
+      FunctionName: !Ref EventConsumerFunction3
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt EventRule.Arn
