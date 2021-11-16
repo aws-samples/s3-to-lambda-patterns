@@ -10,7 +10,7 @@
   "author": "James Beswick",
   "license": "MIT-0",
   "dependencies": {
-    "aws-sdk": "^2.644.0",
+    "aws-sdk": "^2.814.0",
     "pdf-parse": "^1.1.1"
   }
 }
