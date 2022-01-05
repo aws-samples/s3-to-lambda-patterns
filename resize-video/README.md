@@ -20,19 +20,24 @@ Important: this application uses various AWS services and there are costs associ
 
 ## Backend installation Instructions
 
-1. Clone this repo onto your local development machine:
+1. First, create a Lambda layer containing the FFmpeg and FFprobe binaries. Log into your AWS Management Console and navigate to: https://serverlessrepo.aws.amazon.com/applications/us-east-1/145266761615/ffmpeg-lambda-layer.
+
+2. Choose *Deploy* and note the ARN for the resulting Lambda layer.
+
+3. Clone this repo onto your local development machine:
 ```
 git clone https://github.com/aws-samples/s3-to-lambda-patterns
 cd resize-video
 ```
-2. Deploy the backend application:
+4. Deploy the backend application:
 ```
 sam build
 sam deploy --guided
 ```
-3. During the prompts:
+5. During the prompts:
 - Enter a unique source S3 bucket name.
 - Enter a unique destination S3 bucket name.
+- Enter the MMmpeg layer ARN from step 2.
 
 After deployment, upload an MP4 file to the source S3 bucket and the application generates output files in the destination S3 bucket.
 

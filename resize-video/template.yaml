@@ -11,7 +11,7 @@ Parameters:
     Default: 'video-converter-example-dest'
   LayerARN:
     Type: String
-    Default: 'arn:aws:lambda:eu-south-1:780018668030:layer:ffpmpeg:1'
+    Default: 'ENTER YOUR LAYER ARN HERE'
 
 Resources:
   ## S3 buckets
