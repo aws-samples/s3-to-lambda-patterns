@@ -8,9 +8,9 @@
   },
   "keywords": [],
   "author": "James Beswick, AWS Serverless",
-  "license": "ISC",
+  "license": "MIT-0",
   "dependencies": {
-    "faker": "^4.1.0",
-    "fs": "0.0.1-security"
+    "faker": "latest",
+    "fs": "latest"
   }
 }

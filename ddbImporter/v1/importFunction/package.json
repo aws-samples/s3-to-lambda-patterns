@@ -10,7 +10,7 @@
   "author": "AWS Serverless",
   "license": "MIT-0",
   "dependencies": {
-    "aws-sdk": "^2.563.0",
-    "uuid": "^3.3.3"
+    "aws-sdk": "latest",
+    "uuid": "latest"
   }
 }

@@ -10,8 +10,8 @@
   "author": "James Beswick",
   "license": "MIT-0",
   "dependencies": {
-    "aws-sdk": "^2.644.0",
-    "mammoth": "^1.4.9",
-    "sbd": "^1.0.17"
+    "aws-sdk": "latest",
+    "mammoth": "latest",
+    "sbd": "latest"
   }
 }

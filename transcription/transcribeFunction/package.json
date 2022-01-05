@@ -9,7 +9,7 @@
   "keywords": [],
   "author": "James Beswick",
   "license": "MIT-0",
-  "dependencies": {
-    "aws-sdk": "^2.640.0"
+  "devDependencies": {
+    "aws-sdk": "latest"
   }
 }
