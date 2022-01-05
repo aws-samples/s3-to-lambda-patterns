@@ -1,0 +1,14 @@
+{
+    "Records": [
+      {
+        "s3": {
+          "bucket": {
+            "name": "video-converter-example-source"
+          },
+          "object": {
+            "key": "test.mp4"
+          }
+        }
+      }
+    ]
+  }

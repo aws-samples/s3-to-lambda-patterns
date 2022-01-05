@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Resize video with ffmpeg
+
+Parameters:
+  SourceBucketName:
+    Type: String
+    Default: 'video-converter-example-source'
+  OutputBucketName:
+    Type: String
+    Default: 'video-converter-example-dest'
+  LayerARN:
+    Type: String
+    Default: 'arn:aws:lambda:eu-south-1:780018668030:layer:ffpmpeg:1'
+
+Resources:
+  ## S3 buckets
+  SourceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref SourceBucketName
+  OutputBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref OutputBucketName
+
+  ## Lambda functions
+  ResizeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: resizeFunction/
+      Handler: app.handler
+      Runtime: nodejs14.x
+      Timeout: 900
+      MemorySize: 10240
+      Layers:
+        - !Ref LayerARN
+      Environment:
+        Variables:
+          OutputBucketName: !Ref OutputBucketName
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref SourceBucketName
+        - S3WritePolicy:
+            BucketName: !Ref OutputBucketName
+      Events:
+        CreatedEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref SourceBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: suffix
+                    Value: '.mp4'

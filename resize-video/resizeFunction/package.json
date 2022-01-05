@@ -1,0 +1,18 @@
+{
+  "name": "resizing-function",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "James Beswick",
+  "license": "MIT-0",
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "aws-sdk": "latest"
+  }
+}
