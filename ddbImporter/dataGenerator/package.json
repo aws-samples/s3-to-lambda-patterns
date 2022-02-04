@@ -10,7 +10,7 @@
   "author": "James Beswick, AWS Serverless",
   "license": "MIT-0",
   "dependencies": {
-    "faker": "latest",
-    "fs": "latest"
+    "faker": "5.5.3",
+    "fs": "0.0.1-security"
   }
 }
