@@ -10,7 +10,7 @@
   "author": "James Beswick",
   "license": "MIT-0",
   "dependencies": {
-    "aws-sdk": "latest",
-    "uuid": "latest"
+    "aws-sdk": "^2.1069.0",
+    "uuid": "^8.3.2"
   }
 }
