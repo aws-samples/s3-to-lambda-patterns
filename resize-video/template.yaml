@@ -33,6 +33,8 @@ Resources:
       Runtime: nodejs14.x
       Timeout: 900
       MemorySize: 10240
+      EphemeralStorage:
+        Size: 10240      
       Layers:
         - !Ref LayerARN
       Environment:
