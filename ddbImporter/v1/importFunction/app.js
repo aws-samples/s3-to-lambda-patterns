@@ -36,9 +36,10 @@ exports.handler = async (event) => {
         console.log('Incoming record: ', record)
 
         // Get original text from object in incoming event
+        // (S3 event keys are URL-encoded, with spaces as '+')
         const originalText = await s3.send(new GetObjectCommand({
-          Bucket: event.Records[0].s3.bucket.name,
-          Key: event.Records[0].s3.object.key
+          Bucket: record.s3.bucket.name,
+          Key: decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
         }))
 
         // Upload JSON to DynamoDB

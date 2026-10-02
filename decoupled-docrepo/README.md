@@ -33,6 +33,34 @@ Important: this application uses various AWS services and there are costs associ
 │   └── template.yaml           <-- SAM template for basic application
 ```
 
+## Event shapes
+
+The department buckets use [Amazon S3 Event Notifications with Amazon EventBridge](https://docs.aws.amazon.com/AmazonS3/latest/userguide/EventBridge.html). The parseS3event rule matches:
+
+```json
+{
+  "source": ["aws.s3"],
+  "detail-type": ["Object Created"],
+  "detail": {
+    "bucket": { "name": ["<dept1 bucket>", "<dept2 bucket>", "<dept3 bucket>"] }
+  }
+}
+```
+
+The incoming event contains the bucket name in `detail.bucket.name` and the URL-encoded object key in `detail.object.key` (see `parseS3event/parserFunction/localTestEvent.json`). The parser decodes the key and publishes this event to the default bus for the downstream applications:
+
+```json
+{
+  "source": "docRepo.s3",
+  "detail-type": "PutObject",
+  "detail": {
+    "bucket": "patterns-s3-eventbridge-docs1",
+    "key": "resume-paul-renoir.pdf",
+    "type": "pdf"
+  }
+}
+```
+
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
@@ -46,24 +74,24 @@ Important: this application uses various AWS services and there are costs associ
 
 1. From the command line, change directory into the setup folder, then run:
 ```
-sam package --output-template-file packaged.yaml --s3-bucket <<YOUR DEPLOYMENT BUCKET>
-sam deploy --template-file packaged.yaml --capabilities CAPABILITY_NAMED_IAM --stack-name docrepo-setup --region us-east-1
+sam deploy --template-file template.yaml --capabilities CAPABILITY_IAM --stack-name docrepo-setup --region us-east-1
 ```
-Modify the stack-name or region parameters as needed.
+This creates the three department buckets (with Amazon EventBridge notifications enabled) and a managed IAM policy that grants read access to them. The policy ARN is exported as `<setup stack name>-S3ReadPolicyArn`. Modify the region as needed. If you use a different stack name, pass it as the `SetupStackName` parameter when deploying the converters and analyzers stacks.
 
 1. Change directory into the parseS3event directory, then run:
 ``` 
 sam build -u
 sam deploy --guided
 ```
-Follow the prompts in the deploy process to set the stack name, AWS Region, unique bucket names, Elasticsearch domain endpoint, and other parameters.
+Follow the prompts in the deploy process to set the stack name, AWS Region, bucket name prefixes (these must match the prefixes used in the setup stack; both templates append your account ID and Region), and other parameters.
 
-1. Deploy each of the SAM templates in the analyzers, converters and loaders directly in sequence, using the sam build and sam deploy commands shown in the previous step.
+1. Deploy each of the SAM templates in the converters, analyzers and loaders directories in sequence, using the sam build and sam deploy commands shown in the previous step. The converters and analyzers stacks import the S3 read policy exported by the setup stack, so the setup stack must be deployed first (and cannot be deleted while these stacks exist). For the loaders stack, set the Elasticsearch domain endpoint parameter.
 
 ## How it works
 
 * Ensure you have an Amazon Elasticsearch Service instance running, and have granted permission to the ARN for the "loadToES" Lambda function in this stack. 
 * Upload PDF, DOCX or JPG files to the target Documents buckets.
+* Each bucket sends an `Object Created` event directly to the default EventBridge event bus (no AWS CloudTrail trail is needed). The parseS3event function is invoked by a rule matching these events, and publishes a simplified `docRepo.s3` event that the converters and analyzers subscribe to.
 * After a few seconds you will see the index in Elasticsearch has been updated with labels and entities for the object.
 
 ==============================================

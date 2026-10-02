@@ -39,7 +39,7 @@ const checkRequiredLabels = async (event) => {
   const data = await rekognition.send(new DetectLabelsCommand(params))
   const { Labels } = data
 
-  console.log('Labels found: ', Labels)
+  console.log('Labels found: ', Labels.map((item) => item.Name))
 
   // Find requiredWords in detected text
   Labels.forEach((item) => {
@@ -79,7 +79,7 @@ const checkRequiredWords = async (event) => {
   const data = await rekognition.send(new DetectTextCommand(params))
   const { TextDetections } = data
 
-  console.log('Words found: ', TextDetections)
+  console.log('Words found: ', TextDetections.map((item) => item.DetectedText))
   
   // Find requiredWords in detected text
   TextDetections.forEach((item) => {

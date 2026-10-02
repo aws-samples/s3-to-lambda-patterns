@@ -32,10 +32,13 @@ exports.handler = async (event) => {
       records.map(async (record) => {
         console.log('Incoming record: ', record)
 
+        // S3 event keys are URL-encoded, with spaces as '+'
+        const Key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
+
         // Load JSON object
         const response = await getS3object({
           Bucket: record.s3.bucket.name,
-          Key: record.s3.object.key
+          Key
         })
         // Extract the transcript
         const originalText = JSON.parse(response.Body.toString('utf-8'))
@@ -49,7 +52,7 @@ exports.handler = async (event) => {
         const params = {
           TableName: process.env.ddbTable,
           Item: {
-            partitionKey: record.s3.object.key,
+            partitionKey: Key,
             transcript, 
             created: Math.floor(Date.now() / 1000),
             Sentiment: sentiment.Sentiment,
@@ -61,8 +64,8 @@ exports.handler = async (event) => {
         }
 
         console.log('Params: ', params)
-        const ddbResult = await documentClient.send(new PutCommand(params))
-        console.log ('DDBresult: ', ddbResult)
+        await documentClient.send(new PutCommand(params))
+        console.log ('Saved to DynamoDB: ', Key)
       })
     )
   } catch (err) {
@@ -77,6 +80,6 @@ const doSentimentAnalysis = async (Text) => {
   }
 
   const result = await comprehend.send(new DetectSentimentCommand(params))
-  console.log('doSentimentAnalysis: ', result)
+  console.log('doSentimentAnalysis: ', result.Sentiment)
   return result
 }

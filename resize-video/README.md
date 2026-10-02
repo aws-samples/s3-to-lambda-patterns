@@ -8,36 +8,41 @@ Important: this application uses various AWS services and there are costs associ
 ```bash
 .
 ├── README.MD              <-- This instructions file
-├── resize-video           <-- Source code for the video resizer function
+├── ffmpegLayer            <-- Lambda layer containing FFmpeg and FFprobe
+│   └── Makefile           <-- Downloads the FFmpeg binaries during `sam build`
+├── resizeFunction         <-- Source code for the video resizer function
+│   └── app.js             <-- Main Lambda handler
+│   └── resize.js          <-- Resizes the video with FFmpeg
+│   └── localTest.js       <-- Runs the handler locally
+│   └── package.json       <-- NodeJS dependencies and scripts
+├── template.yaml          <-- SAM template
 ```
 
 ## Requirements
 
 * An AWS account. ([Create an AWS account](https://portal.aws.amazon.com/gp/aws/developer/registration/index.html) if you do not already have one and login.)
 * AWS CLI already configured with Administrator permission
-* [AWS SAM CLI installed](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) - **minimum version 0.48**.
+* [AWS SAM CLI installed](https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/serverless-sam-cli-install.html) - use a recent version that supports the `nodejs24.x` runtime.
 * [NodeJS 24.x installed](https://nodejs.org/en/download/)
+* `make`, `curl` and `tar` with xz support, used by `sam build` to build the FFmpeg layer
 
 ## Backend installation Instructions
 
-1. First, create a Lambda layer containing the FFmpeg and FFprobe binaries. Log into your AWS Management Console and navigate to: https://serverlessrepo.aws.amazon.com/applications/us-east-1/145266761615/ffmpeg-lambda-layer.
-
-2. Choose *Deploy* and note the ARN for the resulting Lambda layer.
-
-3. Clone this repo onto your local development machine:
+1. Clone this repo onto your local development machine:
 ```
 git clone https://github.com/aws-samples/s3-to-lambda-patterns
-cd resize-video
+cd s3-to-lambda-patterns/resize-video
 ```
-4. Deploy the backend application:
+2. Deploy the backend application:
 ```
 sam build
 sam deploy --guided
 ```
-5. During the prompts:
-- Enter a unique source S3 bucket name.
-- Enter a unique destination S3 bucket name.
-- Enter the MMmpeg layer ARN from step 2.
+`sam build` also builds the FFmpeg Lambda layer. It downloads the current static FFmpeg release for Linux arm64 from [John Van Sickle's FFmpeg builds](https://johnvansickle.com/ffmpeg/), checks it against the published MD5 checksum, and packages the `ffmpeg` and `ffprobe` binaries so the function can use them at `/opt/bin/`. The function runs on the arm64 (AWS Graviton) architecture.
+
+3. During the prompts:
+- Enter a name prefix for the source S3 bucket (the template appends your account ID and Region).
+- Enter a name prefix for the destination S3 bucket (the template appends your account ID and Region).
 
 After deployment, upload an MP4 file to the source S3 bucket and the application generates output files in the destination S3 bucket.
 

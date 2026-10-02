@@ -40,10 +40,11 @@ const startExecution = async (event) => {
         name: Math.floor(Math.random() * Math.floor(1000000000)).toString(),
         input: JSON.stringify({
             bucket: event.s3.bucket.name,
-            key: event.s3.object.key
+            // S3 event keys are URL-encoded, with spaces as '+'
+            key: decodeURIComponent(event.s3.object.key.replace(/\+/g, ' '))
         })
     }    
     console.log(params)
     const result = await stepFunctions.send(new StartExecutionCommand(params))
-    console.log(result)
+    console.log('Started execution: ', result.executionArn)
 }

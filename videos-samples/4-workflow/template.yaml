@@ -16,7 +16,7 @@ Resources:
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref InputBucketName
+      BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
 
   ## Lambda functions
   ProcessFunction:
@@ -25,13 +25,15 @@ Resources:
       CodeUri: processFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
       Environment:
         Variables:
           stateMachineArn: !Ref 'DogOrCatStateMachine'
       Policies:
         - S3CrudPolicy:
-            BucketName: !Ref InputBucketName
+            BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
         - Statement:
           - Effect: Allow
             Resource: '*'
@@ -55,6 +57,8 @@ Resources:
       CodeUri: foundFunction/
       Handler: dog.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
 
   CatFoundFunction:
@@ -63,6 +67,8 @@ Resources:
       CodeUri: foundFunction/
       Handler: cat.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128      
 
   ## Step Functions state machine

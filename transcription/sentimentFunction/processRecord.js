@@ -26,10 +26,13 @@ const documentClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 
 const LanguageCode = 'en'
 
 const processRecord = async (record) => {
+  // S3 event keys are URL-encoded, with spaces as '+'
+  const Key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
+
   // Load JSON object
   const response = await s3.send(new GetObjectCommand({
     Bucket: record.s3.bucket.name,
-    Key: record.s3.object.key
+    Key
   }))
 
   // Extract the transcript
@@ -42,13 +45,13 @@ const processRecord = async (record) => {
     LanguageCode,
     Text
   }))
-  console.log(`Sentiment result ${sentiment}`)
+  console.log(`Sentiment result: ${sentiment.Sentiment}`)
 
   // Store in DynamoDB
   const params = {
     TableName: process.env.DDBtable,
     Item: {
-      partitionKey: record.s3.object.key,
+      partitionKey: Key,
       transcript: Text, 
       created: Math.floor(Date.now() / 1000),
       Sentiment: sentiment.Sentiment,

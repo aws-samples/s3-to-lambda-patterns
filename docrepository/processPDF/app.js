@@ -63,12 +63,13 @@ const processDocument = async (event) => {
     console.log('PDF text length: ', data.text.length)
 
     // Write result to staging S3 bucket
-    console.log(await s3.send(new PutObjectCommand({
+    await s3.send(new PutObjectCommand({
       Bucket: process.env.OutputBucket,
       Key: `pdf/${Key}.txt`,
       Body: data.text,
       ContentType: 'application/text'
-    })))
+    }))
+    console.log(`Saved to S3: pdf/${Key}.txt`)
 
   } catch (err) {
     console.error(`Handler error: ${err}`)

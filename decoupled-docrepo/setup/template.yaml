@@ -13,101 +13,61 @@ Parameters:
   Dept3BucketName:
     Type: String
     Default: 'patterns-s3-eventbridge-docs3'
-  LoggingBucketName:
-    Type: String
-    Default: 'patterns-s3-eventbridge-docs-logs'
 
-## S3 buckets
+## S3 buckets - EventBridge notifications are enabled so that S3 sends
+## object-level events (such as Object Created) to the default event bus
 Resources:
   Dept1Bucket:
     Type: AWS::S3::Bucket  
     Properties:
-      BucketName: !Ref Dept1BucketName
+      BucketName: !Sub '${Dept1BucketName}-${AWS::AccountId}-${AWS::Region}'
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
   Dept2Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref Dept2BucketName
+      BucketName: !Sub '${Dept2BucketName}-${AWS::AccountId}-${AWS::Region}'
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
   Dept3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref Dept3BucketName
-  LoggingBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Ref LoggingBucketName
-
-# Bucket policy enables CloudTrail to write to the logging bucket
-  BucketPolicy: 
-    Type: AWS::S3::BucketPolicy
-    Properties: 
-      Bucket: 
-        Ref: LoggingBucket
-      PolicyDocument: 
-        Version: "2012-10-17"
-        Statement: 
-          - Sid: "AWSCloudTrailAclCheck"
-            Effect: "Allow"
-            Principal: 
-              Service: "cloudtrail.amazonaws.com"
-            Action: "s3:GetBucketAcl"
-            Resource: 
-              !Sub 'arn:aws:s3:::${LoggingBucket}'
-          - Sid: "AWSCloudTrailWrite"
-            Effect: "Allow"
-            Principal: 
-              Service: "cloudtrail.amazonaws.com"
-            Action: "s3:PutObject"
-            Resource:
-              !Sub 'arn:aws:s3:::${LoggingBucket}/AWSLogs/${AWS::AccountId}/*'
-            Condition: 
-              StringEquals:
-                s3:x-amz-acl: "bucket-owner-full-control"
-
-  # The CloudTrail trail - uses the LoggingBucketName as the trail name
-  # Specify the buckets you want to monitor in the EventSelectors Values array
-
-  myTrail: 
-    Type: AWS::CloudTrail::Trail
-    DependsOn: 
-      - BucketPolicy
-    Properties: 
-      TrailName: !Ref LoggingBucketName
-      S3BucketName: 
-        Ref: LoggingBucket
-      IsLogging: true
-      IsMultiRegionTrail: false
-      EventSelectors:
-        - IncludeManagementEvents: false
-          DataResources:
-          - Type: AWS::S3::Object
-            Values:
-              - !Sub 'arn:aws:s3:::${Dept1BucketName}/'
-              - !Sub 'arn:aws:s3:::${Dept2BucketName}/'
-              - !Sub 'arn:aws:s3:::${Dept3BucketName}/'
-      IncludeGlobalServiceEvents: false
+      BucketName: !Sub '${Dept3BucketName}-${AWS::AccountId}-${AWS::Region}'
+      NotificationConfiguration:
+        EventBridgeConfiguration:
+          EventBridgeEnabled: true
 
 # Used by any target functions to access the S3
 # buckets. If more buckets need to be added, add here
-# instead of at each function.
+# instead of at each function. The policy ARN is exported
+# so other stacks can import it with Fn::ImportValue.
 
   MyManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
-      ManagedPolicyName: docrepo-s3-read-policy
       PolicyDocument: 
         Version: 2012-10-17
         Statement: 
           - Effect: Allow
             Action:
               - s3:GetObject
-              - s3:ListBucket
-              - s3:GetBucketLocation
               - s3:GetObjectVersion
-              - s3:GetLifecycleConfiguration
             Resource:
               - !Sub 'arn:aws:s3:::${Dept1Bucket}/*'
               - !Sub 'arn:aws:s3:::${Dept2Bucket}/*'
               - !Sub 'arn:aws:s3:::${Dept3Bucket}/*'
+          # Bucket-level actions must target the bucket ARN, not objects
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+              - s3:GetBucketLocation
+              - s3:GetLifecycleConfiguration
+            Resource:
+              - !Sub 'arn:aws:s3:::${Dept1Bucket}'
+              - !Sub 'arn:aws:s3:::${Dept2Bucket}'
+              - !Sub 'arn:aws:s3:::${Dept3Bucket}'
 
 ## Outputs
 Outputs: 
@@ -120,6 +80,8 @@ Outputs:
   Dept3BucketName:
     Description: Department 3 documents bucket
     Value: !Ref Dept3Bucket
-  LoggingBucketName:
-    Description: CloudTrail logging bucket
-    Value: !Ref LoggingBucket      
+  S3ReadPolicyArn:
+    Description: Managed policy granting read access to the department buckets
+    Value: !Ref MyManagedPolicy
+    Export:
+      Name: !Sub '${AWS::StackName}-S3ReadPolicyArn'

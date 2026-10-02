@@ -11,7 +11,7 @@ Resources:
   InputS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref InputBucketName
+      BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
 
   DDBtable:
     Type: AWS::DynamoDB::Table
@@ -30,6 +30,8 @@ Resources:
       CodeUri: importFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       Timeout: 30
       MemorySize: 512
       Environment:
@@ -40,7 +42,7 @@ Resources:
         - DynamoDBCrudPolicy:
             TableName: !Ref DDBtable        
         - S3CrudPolicy:
-            BucketName: !Ref InputBucketName
+            BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
       Events:
         FileUpload:
           Type: S3

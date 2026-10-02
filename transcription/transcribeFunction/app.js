@@ -25,14 +25,26 @@ const s3 = new S3Client({ region: process.env.AWS_REGION })
 const DefaultLanguageCode = 'en-US'
 const MediaFormat = 'mp3'
 
+// Job names must match ^[0-9a-zA-Z._-]+ and be no longer than 200 characters
+const MAX_JOB_NAME_LENGTH = 200
+
+// Builds a valid, unique job name from the object key
+const getJobName = (key) => {
+  const suffix = `-${Date.now()}`
+  const baseName = key.replace(/[^0-9a-zA-Z._-]/g, '-').substring(0, MAX_JOB_NAME_LENGTH - suffix.length)
+  return `${baseName}${suffix}`
+}
+
 exports.handler = async (event) => {
   console.log (JSON.stringify(event, null, 2))
 
   try {
     await Promise.all(
       event.Records.map(async (record) => {
-        const mediaUrl = `https://s3.amazonaws.com/${record.s3.bucket.name}/${record.s3.object.key}`
-        const TranscriptionJobName = `${record.s3.object.key}-${Date.now()}`
+        // S3 event keys are URL-encoded, with spaces as '+'
+        const Key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
+        const mediaUrl = `s3://${record.s3.bucket.name}/${Key}`
+        const TranscriptionJobName = getJobName(Key)
     
         console.log(`S3 object: ${mediaUrl}`)
         console.log(`Job name: ${TranscriptionJobName}`)
@@ -40,11 +52,11 @@ exports.handler = async (event) => {
         // Get object metadata if available
         const data = await s3.send(new HeadObjectCommand({
           Bucket: record.s3.bucket.name,
-          Key: record.s3.object.key,
+          Key,
         }));
 
         // Use ContentLanguage for language code if present
-        console.log(`Object data: ${JSON.stringify(data, null, 0)}`)
+        console.log(`Object ContentLanguage: ${data.ContentLanguage}`)
         let LanguageCode = data.ContentLanguage ? data.ContentLanguage : DefaultLanguageCode
         console.log(`LanguageCode: ${LanguageCode}`)
 
@@ -56,7 +68,7 @@ exports.handler = async (event) => {
           TranscriptionJobName,
           OutputBucketName: record.s3.bucket.name
         }))
-        console.log(`Transcribe result: ${JSON.stringify(result, null, 0)}`)
+        console.log(`Transcribe job status: ${result.TranscriptionJob.TranscriptionJobStatus}`)
       })
     )
   } catch (err) {

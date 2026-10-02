@@ -50,7 +50,7 @@ async function getS3object(params) {
 // }
 
 async function putS3object(params) {
-  console.log('putS3object params: ', params)
+  console.log('putS3object: ', params.Bucket, params.Key)
   try {
     return await s3.send(new PutObjectCommand(params))
   } catch (err) {

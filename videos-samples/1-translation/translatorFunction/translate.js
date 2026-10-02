@@ -31,7 +31,7 @@ const translateText = async (originalText, targetLanguageCode) => {
 
   try {
     const data = await translate.send(new TranslateTextCommand(params))
-    console.log('Data: ', data)
+    console.log(`Translated ${data.SourceLanguageCode} to ${data.TargetLanguageCode}: ${data.TranslatedText.length} characters`)
     return data
   } catch (err) {
     console.log('Error: ', err)

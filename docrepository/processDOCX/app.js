@@ -56,7 +56,7 @@ const processDocument = async (event) => {
   }))
   const body = Buffer.from(await result.Body.transformToByteArray())
 
-  console.log(result)
+  console.log(`Downloaded object from S3: ${result.ContentLength} bytes`)
   try {
     // Extract text from DOCX
     const text = (await mammoth.extractRawText({ buffer: body })).value    
@@ -68,12 +68,13 @@ const processDocument = async (event) => {
     console.log('DOCX text length: ', cleanedText.length)
 
     // Write result to staging S3 bucket
-    console.log(await s3.send(new PutObjectCommand({
+    await s3.send(new PutObjectCommand({
       Bucket: process.env.OutputBucket,
       Key: `docx/${Key}.txt`,
       Body: cleanedText,
       ContentType: 'application/text'
-    })))
+    }))
+    console.log(`Saved to S3: docx/${Key}.txt`)
 
   } catch (err) {
     console.error(`Handler error: ${err}`)

@@ -27,7 +27,7 @@ const { defaultProvider } = require('@aws-sdk/credential-provider-node')
 exports.handler = async (event) => {
   console.log(JSON.stringify(event, null, 2))
 
-  if (!("q" in event.queryStringParameters)) {
+  if (!event.queryStringParameters || !("q" in event.queryStringParameters)) {
     return {
       statusCode: 422,
       body: 'Missing parameter'
@@ -36,10 +36,11 @@ exports.handler = async (event) => {
 
   // Run elasticsearch query  
   try {
+    // queryES returns the raw JSON string from Elasticsearch
     const response = await queryES(event)
     return {
       statusCode: 200,
-      body: JSON.stringify(response)
+      body: response
     }
   } catch (err) {  
     console.error(err)
