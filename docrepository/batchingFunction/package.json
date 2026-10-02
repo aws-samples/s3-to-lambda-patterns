@@ -9,7 +9,6 @@
   "author": "James Beswick",
   "license": "MIT-0",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1145.0",
-    "sbd": "^1.0.19"
+    "@aws-sdk/client-s3": "^3.1145.0"
   }
 }

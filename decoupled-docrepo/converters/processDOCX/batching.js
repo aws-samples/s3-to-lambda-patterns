@@ -16,7 +16,11 @@
 
 'use strict'
 
-const tokenizer = require('sbd')
+// Split text into sentences using the built-in Intl.Segmenter, treating newlines as boundaries
+const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' })
+const splitSentences = (text) => text.split(/\n+/).flatMap(line =>
+  Array.from(segmenter.segment(line), ({ segment }) => segment.trim())
+).filter(Boolean)
 const sentenceDelimeter = ' '
 
 // 5000 chars is the limit. Allowing for extra spaces when sentences are merged.
@@ -30,10 +34,7 @@ const doBatching = async (text) => {
 
   console.log(`Original text length: ${text.length}`)
 
-  const sentences = tokenizer.sentences(text, {
-    "newline_boundaries": true,
-    "sanitize": false,
-  })
+  const sentences = splitSentences(text)
 
   console.log(`Total sentences: ${sentences.length}`)
 
