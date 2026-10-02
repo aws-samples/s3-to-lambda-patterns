@@ -11,7 +11,6 @@
   "license": "MIT-0",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1145.0",
-    "@aws-sdk/client-sqs": "^3.1145.0",
-    "uuid": "^8.3.2"
+    "@aws-sdk/client-sqs": "^3.1145.0"
   }
 }

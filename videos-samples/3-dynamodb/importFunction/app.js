@@ -19,7 +19,7 @@ const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
 const { DynamoDBDocumentClient, BatchWriteCommand } = require('@aws-sdk/lib-dynamodb')
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION }))
-const uuidv4 = require('uuid/v4')
+const { randomUUID } = require('crypto')
 const { getS3object, putS3object }  = require('./s3')
 
 const ddbTable = process.env.DDBtable 
@@ -103,7 +103,7 @@ const uploadJSONtoDynamoDB = async (data) => {
         params.RequestItems[ddbTable].push({
           PutRequest: {
             Item: {
-              ID: uuidv4(),
+              ID: randomUUID(),
               ...item
             }
           }

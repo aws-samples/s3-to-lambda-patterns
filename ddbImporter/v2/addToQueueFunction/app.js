@@ -19,7 +19,7 @@ const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs')
 const s3 = new S3Client({})
 
-const { v4: uuidv4 } = require('uuid')
+const { randomUUID } = require('crypto')
 const sqs = new SQSClient({})
 
 // The Lambda handler
@@ -78,7 +78,7 @@ const addToSQS = async (data) => {
 
         // Build params
         items.push({
-          ID: uuidv4(),
+          ID: randomUUID(),
           ...item
         })
       })
