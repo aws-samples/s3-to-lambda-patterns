@@ -27,6 +27,8 @@ Resources:
     Properties:
       Description: Static FFmpeg and FFprobe binaries for Linux arm64
       ContentUri: ffmpegLayer/
+      # Remove old layer versions when the stack is updated or deleted
+      RetentionPolicy: Delete
       CompatibleArchitectures:
         - arm64
       CompatibleRuntimes:
