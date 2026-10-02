@@ -15,11 +15,12 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const s3 = new AWS.S3()
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, BatchWriteCommand } = require('@aws-sdk/lib-dynamodb')
+const s3 = new S3Client({})
 
-const docClient = new AWS.DynamoDB.DocumentClient()
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}))
 const { v4: uuidv4 } = require('uuid')
 
 const ddbTable = process.env.DDBtable 
@@ -35,13 +36,13 @@ exports.handler = async (event) => {
         console.log('Incoming record: ', record)
 
         // Get original text from object in incoming event
-        const originalText = await s3.getObject({
+        const originalText = await s3.send(new GetObjectCommand({
           Bucket: event.Records[0].s3.bucket.name,
           Key: event.Records[0].s3.object.key
-        }).promise()
+        }))
 
         // Upload JSON to DynamoDB
-        const jsonData = JSON.parse(originalText.Body.toString('utf-8'))
+        const jsonData = JSON.parse(await originalText.Body.transformToString('utf-8'))
         await ddbLoader(jsonData)
 
       } catch (err) {
@@ -97,7 +98,7 @@ const ddbLoader = async (data) => {
       try {
         batchCount++
         console.log('Trying batch: ', batchCount)
-        const result = await docClient.batchWrite(params).promise()
+        const result = await docClient.send(new BatchWriteCommand(params))
         console.log('Success: ', result)
       } catch (err) {
         console.error('Error: ', err)

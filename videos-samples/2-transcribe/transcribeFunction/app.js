@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION
-const transcribeService = new AWS.TranscribeService()
+const { TranscribeClient, StartTranscriptionJobCommand } = require('@aws-sdk/client-transcribe')
+const transcribeService = new TranscribeClient({ region: process.env.AWS_REGION })
 
 // Language list: [en-IE, ar-AE, te-IN, en-US, en-AB, ta-IN, en-IN, ar-SA, zh-CN, gd-GB, tr-TR, id-ID, nl-NL, es-ES, pt-PT, ru-RU, it-IT, fr-FR, de-DE, ga-IE, af-ZA, ko-KR, de-CH, hi-IN, cy-GB, ms-MY, he-IL, da-DK, en-AU, en-WL, pt-BR, fa-IR, ja-JP, es-US, en-GB, fr-CA]
 const LanguageCode = 'en-US'
@@ -35,13 +34,13 @@ exports.handler = async (event) => {
         console.log('S3 object: ', mediaUrl)
         console.log('Job name: ', TranscriptionJobName)
 
-        return transcribeService.startTranscriptionJob({
+        return transcribeService.send(new StartTranscriptionJobCommand({
           LanguageCode,
           Media: { MediaFileUri: mediaUrl },
           MediaFormat: 'mp3',
           TranscriptionJobName,
           OutputBucketName: record.s3.bucket.name,
-        }).promise()
+        }))
       })
     )
   } catch (err) {

@@ -15,10 +15,10 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const rekognition = new AWS.Rekognition({apiVersion: '2016-06-27'})
-const s3 = new AWS.S3()
+const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-rekognition')
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+const rekognition = new RekognitionClient({ region: process.env.AWS_REGION })
+const s3 = new S3Client({ region: process.env.AWS_REGION })
 
 // Invoked when a JPG image is put into the source
 // bucket. Sends image to Rekognition to detect
@@ -56,25 +56,25 @@ const processImage = async (event) => {
         Name
       }
     }, 
-    MaxLabels: process.env.MaxLabels, 
-    MinConfidence: process.env.MinConfidence
+    MaxLabels: Number(process.env.MaxLabels), 
+    MinConfidence: Number(process.env.MinConfidence)
   }
   console.log('Params: ', params)
 
   try {
     // Send image to Rekognition
-    const data = await rekognition.detectLabels(params).promise()
+    const data = await rekognition.send(new DetectLabelsCommand(params))
     // Extract key output attributes
     const labels = data.Labels.map((label) => ({Name: label.Name, Confidence: label.Confidence}))
     console.log('Rekognition labels: ', labels)
 
     // Write result to output S3 bucket
-    console.log(await s3.putObject({
+    console.log(await s3.send(new PutObjectCommand({
       Bucket: process.env.OutputBucket,
       Key: `images/${Name}.json`,
       Body: JSON.stringify(labels),
       ContentType: 'application/json'
-    }).promise())
+    })))
   } catch (err) {
     console.error(`Handler error: ${err}`)
   }

@@ -14,43 +14,51 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
+const { SignatureV4 } = require('@smithy/signature-v4')
+const { Sha256 } = require('@aws-crypto/sha256-js')
+const { HttpRequest } = require('@smithy/protocol-http')
+const { NodeHttpHandler } = require('@smithy/node-http-handler')
+const { defaultProvider } = require('@aws-sdk/credential-provider-node')
 const type = '_doc'
 
 const indexDocument = async (event) => {
-  return new Promise((resolve, reject) => {
-    const endpoint = new AWS.Endpoint(process.env.domain)
-    let request = new AWS.HttpRequest(endpoint, process.env.AWS_REGION)
-    const document = event.content
-  
-    request.method = 'PUT'
-    request.path += event.index + '/' + type + '/' + event.id
-    request.body = JSON.stringify(document)
-    request.headers['host'] = endpoint.host
-    request.headers['Content-Type'] = 'application/json'
-    request.headers['Content-Length'] = Buffer.byteLength(request.body)
-  
-    const credentials = new AWS.EnvironmentCredentials('AWS')
-    const signer = new AWS.Signers.V4(request, 'es')
-    signer.addAuthorization(credentials, new Date())
-  
-    const client = new AWS.HttpClient()
-    client.handleRequest(request, null, function(response) {
-      console.log(response.statusCode + ' ' + response.statusMessage)
-      let responseBody = ''
-      response.on('data', function (chunk) {
-        responseBody += chunk;
-      });
-      response.on('end', function (chunk) {
-        console.log('Response body: ' + responseBody)
-        resolve()
-      });
-    }, function(error) {
-      console.log('Error: ' + error)
-      reject()
-    })
+  const document = event.content
+  const body = JSON.stringify(document)
+
+  const request = new HttpRequest({
+    method: 'PUT',
+    protocol: 'https:',
+    hostname: process.env.domain,
+    path: '/' + event.index + '/' + type + '/' + event.id,
+    body,
+    headers: {
+      'host': process.env.domain,
+      'Content-Type': 'application/json',
+      'Content-Length': Buffer.byteLength(body).toString()
+    }
   })
+
+  const signer = new SignatureV4({
+    credentials: defaultProvider(),
+    region: process.env.AWS_REGION,
+    service: 'es',
+    sha256: Sha256
+  })
+  const signedRequest = await signer.sign(request)
+
+  const client = new NodeHttpHandler()
+  try {
+    const { response } = await client.handle(signedRequest)
+    console.log(response.statusCode + ' ' + response.reason)
+    let responseBody = ''
+    for await (const chunk of response.body) {
+      responseBody += chunk
+    }
+    console.log('Response body: ' + responseBody)
+  } catch (error) {
+    console.log('Error: ' + error)
+    throw error
+  }
 }
 
 module.exports = { indexDocument }

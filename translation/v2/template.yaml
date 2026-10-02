@@ -64,7 +64,7 @@ Resources:
     Properties:
       CodeUri: translatorFunction/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       MemorySize: 128
       Timeout: 10      
       ReservedConcurrentExecutions: 1
@@ -100,7 +100,7 @@ Resources:
     Properties:
       CodeUri: batchingFunction/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       MemorySize: 512
       Environment:
         Variables:
@@ -127,7 +127,7 @@ Resources:
     Properties:
       CodeUri: addToQueueFunction/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       Timeout: 15
       MemorySize: 128
       Environment:

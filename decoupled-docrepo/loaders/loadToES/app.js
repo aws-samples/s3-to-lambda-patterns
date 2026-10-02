@@ -15,8 +15,6 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
 const { indexDocument } = require('./indexDocument')
 
 // The standard Lambda handler

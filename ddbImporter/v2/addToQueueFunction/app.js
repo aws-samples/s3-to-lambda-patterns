@@ -15,12 +15,12 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const s3 = new AWS.S3()
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
+const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs')
+const s3 = new S3Client({})
 
 const { v4: uuidv4 } = require('uuid')
-const sqs = new AWS.SQS({apiVersion: '2012-11-05'})
+const sqs = new SQSClient({})
 
 // The Lambda handler
 exports.handler = async (event) => {
@@ -32,13 +32,13 @@ exports.handler = async (event) => {
         console.log('Incoming record: ', record)
 
         // Get original text from object in incoming event
-        const originalText = await s3.getObject({
+        const originalText = await s3.send(new GetObjectCommand({
           Bucket: record.s3.bucket.name,
           Key: record.s3.object.key
-        }).promise()
+        }))
 
         // Upload JSON to DynamoDB
-        const jsonData = JSON.parse(originalText.Body.toString('utf-8'))
+        const jsonData = JSON.parse(await originalText.Body.transformToString('utf-8'))
         await addToSQS(jsonData)
 
       } catch (err) {
@@ -92,7 +92,7 @@ const addToSQS = async (data) => {
       try {
         batchCount++
         console.log('Trying batch: ', batchCount)
-        const result = await sqs.sendMessage(params).promise()
+        const result = await sqs.send(new SendMessageCommand(params))
         console.log('Success: ', result)
       } catch (err) {
         console.error('Error: ', err)

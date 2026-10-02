@@ -16,9 +16,6 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = (process.env.AWS_REGION || 'us-east-1')
-
 const { getS3object, putS3object }  = require('./s3')
 const { translateText } = require('./translate')
 

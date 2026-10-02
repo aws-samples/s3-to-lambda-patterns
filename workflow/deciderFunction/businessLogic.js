@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION
-const rekognition = new AWS.Rekognition({apiVersion: '2016-06-27'})
+const { RekognitionClient, DetectLabelsCommand, DetectTextCommand } = require('@aws-sdk/client-rekognition')
+const rekognition = new RekognitionClient({})
 
 const checkRequiredLabels = async (event) => {
 
@@ -32,12 +31,12 @@ const checkRequiredLabels = async (event) => {
       }
     }, 
     MaxLabels: 5, 
-    MinConfidence: (process.env.minConfidence || 70)
+    MinConfidence: Number(process.env.minConfidence || 70)
   }
 
   console.log(params)
 
-  const data = await rekognition.detectLabels(params).promise()
+  const data = await rekognition.send(new DetectLabelsCommand(params))
   const { Labels } = data
 
   console.log('Labels found: ', Labels)
@@ -71,13 +70,13 @@ const checkRequiredWords = async (event) => {
     },
     Filters: {
       WordFilter: {
-        MinConfidence: (process.env.minConfidence || 70)
+        MinConfidence: Number(process.env.minConfidence || 70)
       }
     }
   }
 
   console.log(params)
-  const data = await rekognition.detectText(params).promise()
+  const data = await rekognition.send(new DetectTextCommand(params))
   const { TextDetections } = data
 
   console.log('Words found: ', TextDetections)

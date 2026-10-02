@@ -23,7 +23,7 @@ This code was originally presented at re:Invent 2019, session ID SVS214.
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-* [NodeJS 12.x installed](https://nodejs.org/en/download/)
+* [NodeJS 24.x installed](https://nodejs.org/en/download/)
 
 ## Installation Instructions
 

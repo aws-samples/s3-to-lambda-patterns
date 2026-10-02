@@ -10,7 +10,9 @@
   "author": "AWS Serverless",
   "license": "MIT-0",
   "dependencies": {
-    "aws-sdk": "^2.563.0",
+    "@aws-sdk/client-dynamodb": "^3.1145.0",
+    "@aws-sdk/client-s3": "^3.1145.0",
+    "@aws-sdk/lib-dynamodb": "^3.1145.0",
     "uuid": "^3.3.3"
   }
 }

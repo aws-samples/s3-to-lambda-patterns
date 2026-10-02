@@ -1,5 +1,5 @@
 {
-  "name": "resizing-function",
+  "name": "process-function",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
@@ -7,12 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "James Beswick",
+  "author": "AWS Serverless",
   "license": "MIT-0",
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.1145.0"
-  },
-  "devDependencies": {
-    "@ffmpeg-installer/ffmpeg": "^1.1.0"
+    "@aws-sdk/client-sfn": "^3.1145.0"
   }
 }

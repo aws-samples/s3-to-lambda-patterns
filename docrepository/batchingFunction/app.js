@@ -16,11 +16,14 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const s3 = new AWS.S3()
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
+const s3 = new S3Client({ region: process.env.AWS_REGION })
 
-const tokenizer = require('sbd')
+// Split text into sentences using the built-in Intl.Segmenter, treating newlines as boundaries
+const segmenter = new Intl.Segmenter('en', { granularity: 'sentence' })
+const splitSentences = (text) => text.split(/\n+/).flatMap(line =>
+  Array.from(segmenter.segment(line), ({ segment }) => segment.trim())
+).filter(Boolean)
 const sentenceDelimeter = ' '
 
 // 5000 chars is the limit. Allowing for extra spaces when sentences are merged.
@@ -59,19 +62,16 @@ const doBatching = async (event) => {
   console.log(`Bucket: ${Bucket}, Key: ${Key}`)
 
   // Get content from source S3 object
-  const result = await s3.getObject({
+  const result = await s3.send(new GetObjectCommand({
     Bucket,
     Key
-  }).promise()
+  }))
   
   console.log(`Downloaded object from S3`)
-  const text = result.Body.toString('utf-8')
+  const text = await result.Body.transformToString('utf-8')
   console.log(`Original text length: ${text.length}`)
 
-  const sentences = tokenizer.sentences(text, {
-    "newline_boundaries": true,
-    "sanitize": false,
-  })
+  const sentences = splitSentences(text)
 
   console.log(`Total sentences: ${sentences.length}`)
 
@@ -93,12 +93,12 @@ const doBatching = async (event) => {
       console.log(counter, batch.join(sentenceDelimeter))
 
       const newKey = Key.replace('.txt', `-${counter}.txt`)
-      const result = await s3.putObject({
+      const result = await s3.send(new PutObjectCommand({
         Bucket: process.env.OutputBucket,
         Key: newKey,
         Body: batch.join(' '),
         ContentType: 'text/plain'
-      }).promise()
+      }))
 
       console.log('S3 result: ', result)
     })

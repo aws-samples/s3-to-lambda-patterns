@@ -15,10 +15,10 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, BatchWriteCommand } = require('@aws-sdk/lib-dynamodb')
 
-const docClient = new AWS.DynamoDB.DocumentClient()
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION }))
 const uuidv4 = require('uuid/v4')
 const { getS3object, putS3object }  = require('./s3')
 
@@ -98,7 +98,7 @@ const uploadJSONtoDynamoDB = async (data) => {
       try {
         batchCount++
         console.log('Trying batch: ', batchCount)
-        const result = await docClient.batchWrite(params).promise()
+        const result = await docClient.send(new BatchWriteCommand(params))
         console.log('Success: ', result)
       } catch (err) {
         console.error('Error: ', err)

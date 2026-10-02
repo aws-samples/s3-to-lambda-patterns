@@ -15,10 +15,10 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION
-const transcribeService = new AWS.TranscribeService()
-const s3 = new AWS.S3()
+const { TranscribeClient, StartTranscriptionJobCommand } = require('@aws-sdk/client-transcribe')
+const { S3Client, HeadObjectCommand } = require('@aws-sdk/client-s3')
+const transcribeService = new TranscribeClient({ region: process.env.AWS_REGION })
+const s3 = new S3Client({ region: process.env.AWS_REGION })
 
 // Language list: en-US | es-US | en-AU | fr-CA | en-GB | de-DE | pt-BR | fr-FR | it-IT | ko-KR | es-ES | en-IN | hi-IN | ar-SA | ru-RU | zh-CN | nl-NL | id-ID | ta-IN | fa-IR | en-IE | en-AB | en-WL | pt-PT | te-IN | tr-TR | de-CH | he-IL | ms-MY | ja-JP | ar-AE
 // See https://docs.aws.amazon.com/transcribe/latest/dg/API_StartTranscriptionJob.html for the most up-to-date list of languages available.
@@ -38,24 +38,24 @@ exports.handler = async (event) => {
         console.log(`Job name: ${TranscriptionJobName}`)
 
         // Get object metadata if available
-        const data = await s3.headObject({
+        const data = await s3.send(new HeadObjectCommand({
           Bucket: record.s3.bucket.name,
           Key: record.s3.object.key,
-        }).promise();
+        }));
 
         // Use ContentLanguage for language code if present
         console.log(`Object data: ${JSON.stringify(data, null, 0)}`)
-        let LanguageCode = data.hasOwnProperty('ContentLanguage') ? data.ContentLanguage : DefaultLanguageCode
+        let LanguageCode = data.ContentLanguage ? data.ContentLanguage : DefaultLanguageCode
         console.log(`LanguageCode: ${LanguageCode}`)
 
         // Submit job to Transcribe service
-        const result =  await transcribeService.startTranscriptionJob({
+        const result =  await transcribeService.send(new StartTranscriptionJobCommand({
           LanguageCode,
           Media: { MediaFileUri: mediaUrl },
           MediaFormat,
           TranscriptionJobName,
           OutputBucketName: record.s3.bucket.name
-        }).promise()
+        }))
         console.log(`Transcribe result: ${JSON.stringify(result, null, 0)}`)
       })
     )

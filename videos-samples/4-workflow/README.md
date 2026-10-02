@@ -9,6 +9,7 @@ Important: this application uses various AWS services and there are costs associ
 ├── README.MD                   <-- This instructions file
 ├── processFunction             <-- Source code for a lambda function
 │   └── app.js                  <-- Starts the workflow
+│   └── package.json            <-- NodeJS dependencies and scripts
 ├── foundFunction               <-- Source code for a lambda function
 │   └── cat.js                  <-- Main Lambda handler for cat images
 │   └── dog.js                  <-- Main Lambda handler for dog images
@@ -18,7 +19,7 @@ Important: this application uses various AWS services and there are costs associ
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-* [NodeJS 12.x installed](https://nodejs.org/en/download/)
+* [NodeJS 24.x installed](https://nodejs.org/en/download/)
 
 ## Installation Instructions
 

@@ -17,13 +17,13 @@
 
 const { arrayContainsArray } = require('./array')
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const s3 = new AWS.S3()
-const sqs = new AWS.SQS({apiVersion: '2012-11-05'})
+const { SQSClient, SendMessageBatchCommand } = require('@aws-sdk/client-sqs')
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb')
+const sqs = new SQSClient({ region: process.env.AWS_REGION })
 
 const TableName = process.env.DDBtable
-const docClient = new AWS.DynamoDB.DocumentClient()
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION }))
 
 let messages = []
 
@@ -100,7 +100,7 @@ const addToSQS = async (messages) => {
       try {
         batchCount++
         console.log(`Trying batch: ${batchCount}`)
-        const result = await sqs.sendMessageBatch(params).promise()
+        const result = await sqs.send(new SendMessageBatchCommand(params))
         console.log(`Success: ${result}`)
       } catch (err) {
         console.error(`Error: ${err}`)
@@ -112,14 +112,14 @@ const addToSQS = async (messages) => {
 // Save to DynamoDB
 const saveToDDB = async (data) => {
   try {
-    await docClient.put({
+    await docClient.send(new PutCommand({
       TableName,
       Item: {
         ID: `${data.Bucket}/${data.Key}`,
         Language: `${data.Language}`,
         Status: "Queued"
       }
-    }).promise()
+    }))
   } catch (err) {
     console.error(`Error: ${err}`)
   }

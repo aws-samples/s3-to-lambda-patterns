@@ -11,7 +11,7 @@ Globals:
   Function:
     Timeout: 15
     MemorySize: 128
-    Runtime: nodejs12.x    
+    Runtime: nodejs24.x    
 
 Resources:
   ## S3 buckets
@@ -26,7 +26,7 @@ Resources:
     Properties:
       CodeUri: StartExecutionFunction/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       MemorySize: 128
       Environment:
         Variables:

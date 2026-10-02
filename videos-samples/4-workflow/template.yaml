@@ -24,7 +24,7 @@ Resources:
     Properties:
       CodeUri: processFunction/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       MemorySize: 128
       Environment:
         Variables:
@@ -54,7 +54,7 @@ Resources:
     Properties:
       CodeUri: foundFunction/
       Handler: dog.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       MemorySize: 128
 
   CatFoundFunction:
@@ -62,7 +62,7 @@ Resources:
     Properties:
       CodeUri: foundFunction/
       Handler: cat.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       MemorySize: 128      
 
   ## Step Functions state machine

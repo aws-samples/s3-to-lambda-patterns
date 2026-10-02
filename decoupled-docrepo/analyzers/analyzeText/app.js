@@ -15,10 +15,9 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
+const { ComprehendClient, DetectEntitiesCommand } = require('@aws-sdk/client-comprehend')
 
-const comprehend = new AWS.Comprehend({apiVersion: '2017-11-27'})
+const comprehend = new ComprehendClient({})
 const { putEvent } = require('./eventbridge')
 
 // Uses Comprehend to detect entities in text.
@@ -44,10 +43,10 @@ exports.handler = async (event) => {
 // Get entities for text
 const processText = async (event) => {
   // Get entities from Comprehend
-  const result = await comprehend.detectEntities({
+  const result = await comprehend.send(new DetectEntitiesCommand({
     LanguageCode: process.env.language,
     Text: event.detail.text
-  }).promise()
+  }))
 
   // Strip down entities to labels
   return result.Entities.map((entity) => (entity.Text))
