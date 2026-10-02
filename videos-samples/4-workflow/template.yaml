@@ -36,9 +36,9 @@ Resources:
             BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
         - Statement:
           - Effect: Allow
-            Resource: '*'
+            Resource: !Ref DogOrCatStateMachine
             Action:
-              - states:*
+              - states:StartExecution
       Events:
         FileUpload:
           Type: S3
@@ -78,24 +78,39 @@ Resources:
       DefinitionString: !Sub |
         {
           "Comment": "Is it a dog or a cat?",
+          "QueryLanguage": "JSONata",
           "StartAt": "IsDogOrCat",
           "States": {
             "IsDogOrCat": {
+              "Comment": "Calls Rekognition directly using the AWS SDK service integration",
               "Type": "Task",
-              "Resource": "arn:aws:lambda:us-west-2:763653534548:function:dogCatFunction",
+              "Resource": "arn:aws:states:::aws-sdk:rekognition:detectLabels",
+              "Arguments": {
+                "Image": {
+                  "S3Object": {
+                    "Bucket": "{% $states.input.bucket %}",
+                    "Name": "{% $states.input.key %}"
+                  }
+                },
+                "MaxLabels": 10,
+                "MinConfidence": 70
+              },
+              "Output": {
+                "bucket": "{% $states.input.bucket %}",
+                "key": "{% $states.input.key %}",
+                "animal": "{% $count($states.result.Labels[Name = 'Dog']) > 0 ? 'Dog' : $count($states.result.Labels[Name = 'Cat']) > 0 ? 'Cat' : 'Unknown' %}"
+              },
               "Next": "ChoiceState"
             },
             "ChoiceState": {
               "Type" : "Choice",
               "Choices": [
                 {
-                  "Variable": "$",
-                  "StringEquals": "Dog",
+                  "Condition": "{% $states.input.animal = 'Dog' %}",
                   "Next": "DogFound"
                 },
                 {
-                  "Variable": "$",
-                  "StringEquals": "Cat",
+                  "Condition": "{% $states.input.animal = 'Cat' %}",
                   "Next": "CatFound"
                 }
               ],
@@ -146,4 +161,15 @@ Resources:
           - Effect: Allow
             Action: 'lambda:InvokeFunction'
             Resource:
-            - '*'
+            - !GetAtt DogFoundFunction.Arn
+            - !GetAtt CatFoundFunction.Arn
+      # Rekognition reads the image from S3 using the state machine's credentials
+      - PolicyName: rekognition
+        PolicyDocument:
+          Statement:
+          - Effect: Allow
+            Action: 'rekognition:DetectLabels'
+            Resource: '*'
+          - Effect: Allow
+            Action: 's3:GetObject'
+            Resource: !Sub 'arn:aws:s3:::${InputBucketName}-${AWS::AccountId}-${AWS::Region}/*'
