@@ -17,7 +17,9 @@ ffmpeg.setFfprobePath(ffprobePath)
 const AWS = require("aws-sdk");
 AWS.config.update({ region: process.env.AWS_REGION })
 const s3 = new AWS.S3({ apiVersion: "2006-03-01" })
+const crypto = require("crypto")
 const fs = require("fs")
+const path = require("path")
 
 const IMG_WIDTH = 240
 const IMG_HEIGHT = 135
@@ -43,8 +45,9 @@ const ffCreateSnippets = async (source, start, snippetSize, key) => {
 
     // Determine output location - use /tmp when deployed
     const outputPath = process.env.localTest ? "./tmp/" : "/tmp/"
-    const outputKey = `${key.split(".")[0]}-${start}.mp4`
-    const outputFile = `${outputPath}${outputKey}`
+    const outputKey = `${key.replace(/\.mp4$/i, "")}-${start}.mp4`
+    // Use a generated local filename - never derive filesystem paths from the S3 key
+    const outputFile = path.join(outputPath, `${crypto.randomBytes(16).toString("hex")}-${start}.mp4`)
     console.log("Processing: ", {
       start,
       end,
