@@ -91,7 +91,7 @@ const doBatching = async (event) => {
       counter++
       console.log(counter, batch.join(sentenceDelimeter))
 
-      const newKey = Key.replace('.txt', `-${counter}.txt`)
+      const newKey = Key.replace(/\.txt$/, `-${counter}.txt`)
       await s3.send(new PutObjectCommand({
         Bucket: process.env.OutputBucket,
         Key: newKey,

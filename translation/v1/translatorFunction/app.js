@@ -29,25 +29,30 @@ const targetLanguages = process.env.targetLanguage.split(' ')
 exports.handler = async (event) => {
   console.log (JSON.stringify(event, null, 2))
 
-  // S3 event keys are URL-encoded, with spaces as '+'
-  const Bucket = event.Records[0].s3.bucket.name
-  const Key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '))
-
-  // Don't fire for any new file in the translations folder
-  if (Key.indexOf('translations') > -1) return
-
   // Check incoming language list matches supported languages
   if (arrayContainsArray(supportedLanguages, targetLanguages) === false) {
     return console.error(`Aborting: targetLanguages includes language codes not in supported list (${supportedLanguages})`)
   }
 
+  // Handle each incoming S3 object in the event
   await Promise.all(
-    targetLanguages.map(async (targetLanguage) => {
-      try {
-        await doTranslation(Bucket, Key, targetLanguage)
-      } catch (err) {
-        console.error(`Handler error: ${err}`)
-      }
+    event.Records.map(async (record) => {
+      // S3 event keys are URL-encoded, with spaces as '+'
+      const Bucket = record.s3.bucket.name
+      const Key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
+
+      // Don't fire for any new file in the translations folder
+      if (Key.startsWith('translations/')) return
+
+      await Promise.all(
+        targetLanguages.map(async (targetLanguage) => {
+          try {
+            await doTranslation(Bucket, Key, targetLanguage)
+          } catch (err) {
+            console.error(`Handler error: ${err}`)
+          }
+        })
+      )
     })
   )
 }
@@ -61,7 +66,7 @@ const doTranslation = async (Bucket, Key, targetLanguage) => {
   const data = await translateText(await originalText.Body.transformToString('utf-8'), targetLanguage)
 
   // Save the new translation
-  const baseObjectName = Key.replace('.txt','')
+  const baseObjectName = Key.replace(/\.txt$/, '')
   await s3.send(new PutObjectCommand({
     Bucket,
     Key: `translations/${baseObjectName}-${targetLanguage}.txt`,

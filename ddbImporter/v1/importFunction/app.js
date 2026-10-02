@@ -54,6 +54,21 @@ exports.handler = async (event) => {
 }
 
 // Load JSON data to DynamoDB table
+// BatchWrite can return UnprocessedItems (for example when throttled) without
+// throwing, so resubmit them with exponential backoff
+const MAX_ATTEMPTS = 5
+const batchWriteWithRetry = async (params) => {
+  let RequestItems = params.RequestItems
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const result = await docClient.send(new BatchWriteCommand({ RequestItems }))
+    if (!result.UnprocessedItems || Object.keys(result.UnprocessedItems).length === 0) return
+    RequestItems = result.UnprocessedItems
+    console.log(`Retrying ${RequestItems[ddbTable].length} unprocessed items (attempt ${attempt})`)
+    await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** attempt))
+  }
+  throw new Error(`Items still unprocessed after ${MAX_ATTEMPTS} attempts`)
+}
+
 const ddbLoader = async (data) => {
   // Separate into batches for upload
   let batches = []
@@ -99,8 +114,8 @@ const ddbLoader = async (data) => {
       try {
         batchCount++
         console.log('Trying batch: ', batchCount)
-        const result = await docClient.send(new BatchWriteCommand(params))
-        console.log('Success: ', result)
+        await batchWriteWithRetry(params)
+        console.log('Success: batch', batchCount)
       } catch (err) {
         console.error('Error: ', err)
       }

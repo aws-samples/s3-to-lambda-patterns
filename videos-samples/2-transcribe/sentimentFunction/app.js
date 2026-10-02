@@ -44,6 +44,9 @@ exports.handler = async (event) => {
         const originalText = JSON.parse(response.Body.toString('utf-8'))
         const transcript = originalText.results.transcripts[0].transcript
 
+        // Comprehend rejects empty text (e.g. a silent recording)
+        if (!transcript) return console.log(`No transcript text in ${Key}, skipping`)
+
         // Do sentiment analysis
         console.log('Transcript: ', transcript)
         const sentiment = await doSentimentAnalysis(transcript)
@@ -73,10 +76,24 @@ exports.handler = async (event) => {
   }
 }
 
+// DetectSentiment accepts at most 5,000 bytes of UTF-8 text, so longer
+// transcripts are analyzed using their first 5,000 bytes
+const MAX_SENTIMENT_BYTES = 5000
+const truncateToBytes = (text, maxBytes) => {
+  let bytes = 0
+  let end = 0
+  for (const char of text) {
+    bytes += Buffer.byteLength(char)
+    if (bytes > maxBytes) break
+    end += char.length
+  }
+  return text.slice(0, end)
+}
+
 const doSentimentAnalysis = async (Text) => {
   const params = {
     LanguageCode: 'en',
-    Text
+    Text: truncateToBytes(Text, MAX_SENTIMENT_BYTES)
   }
 
   const result = await comprehend.send(new DetectSentimentCommand(params))
