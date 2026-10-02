@@ -13,6 +13,8 @@ Important: this application uses various AWS services and there are costs associ
 ├── foundFunction               <-- Source code for a lambda function
 │   └── cat.js                  <-- Main Lambda handler for cat images
 │   └── dog.js                  <-- Main Lambda handler for dog images
+├── statemachine
+│   └── dogorcat.asl.json       <-- State machine definition (calls Rekognition directly)
 ├── template.yaml               <-- SAM template
 ```
 

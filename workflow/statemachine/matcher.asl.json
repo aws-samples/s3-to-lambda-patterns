@@ -1,0 +1,126 @@
+{
+  "Comment": "Does this match or not? Calls Amazon Rekognition directly using the AWS SDK service integration",
+  "QueryLanguage": "JSONata",
+  "StartAt": "Setup",
+  "States": {
+    "Setup": {
+      "Type": "Pass",
+      "Comment": "Turns the comma-separated template parameters into arrays, ignoring empty entries",
+      "Assign": {
+        "bucket": "{% $states.input.bucket %}",
+        "key": "{% $states.input.key %}",
+        "requiredLabels": "{% [$split('${RequiredLabels}', ',').$trim()[$ != '']] %}",
+        "requiredWords": "{% [$split('${RequiredWords}', ',').$trim()[$ != '']] %}",
+        "minConfidence": "{% $number('${MinConfidence}') %}"
+      },
+      "Next": "CheckLabels?"
+    },
+    "CheckLabels?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Condition": "{% $count($requiredLabels) > 0 %}",
+          "Next": "DetectLabels"
+        }
+      ],
+      "Default": "CheckWords?"
+    },
+    "DetectLabels": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:rekognition:detectLabels",
+      "Arguments": {
+        "Image": {
+          "S3Object": {
+            "Bucket": "{% $bucket %}",
+            "Name": "{% $key %}"
+          }
+        },
+        "MaxLabels": 10,
+        "MinConfidence": "{% $minConfidence %}"
+      },
+      "Assign": {
+        "foundLabels": "{% [$states.result.Labels.Name] %}"
+      },
+      "Next": "LabelsMatched?"
+    },
+    "LabelsMatched?": {
+      "Type": "Choice",
+      "Comment": "Every required label must be found",
+      "Choices": [
+        {
+          "Condition": "{% $count($requiredLabels[$ in $foundLabels]) = $count($requiredLabels) %}",
+          "Next": "CheckWords?"
+        }
+      ],
+      "Default": "NoMatchFound"
+    },
+    "CheckWords?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Condition": "{% $count($requiredWords) > 0 %}",
+          "Next": "DetectText"
+        }
+      ],
+      "Default": "MatchFound"
+    },
+    "DetectText": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:rekognition:detectText",
+      "Arguments": {
+        "Image": {
+          "S3Object": {
+            "Bucket": "{% $bucket %}",
+            "Name": "{% $key %}"
+          }
+        },
+        "Filters": {
+          "WordFilter": {
+            "MinConfidence": "{% $minConfidence %}"
+          }
+        }
+      },
+      "Assign": {
+        "foundWords": "{% [$states.result.TextDetections.DetectedText] %}"
+      },
+      "Next": "WordsMatched?"
+    },
+    "WordsMatched?": {
+      "Type": "Choice",
+      "Comment": "Every required word must be found",
+      "Choices": [
+        {
+          "Condition": "{% $count($requiredWords[$ in $foundWords]) = $count($requiredWords) %}",
+          "Next": "MatchFound"
+        }
+      ],
+      "Default": "NoMatchFound"
+    },
+    "MatchFound": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${MatchFunctionArn}",
+        "Payload": {
+          "bucket": "{% $bucket %}",
+          "key": "{% $key %}"
+        }
+      },
+      "Output": "{% $states.result.Payload %}",
+      "End": true
+    },
+    "NoMatchFound": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Arguments": {
+        "FunctionName": "${NoMatchFunctionArn}",
+        "Payload": {
+          "bucket": "{% $bucket %}",
+          "key": "{% $key %}"
+        }
+      },
+      "Output": "{% $states.result.Payload %}",
+      "End": true
+    }
+  }
+}
