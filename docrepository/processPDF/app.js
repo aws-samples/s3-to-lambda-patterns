@@ -18,7 +18,6 @@
 const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
 
 const s3 = new S3Client({ region: process.env.AWS_REGION })
-const pdf = require('pdf-parse')
 
 // Invoked when a PDF is put into the source
 // bucket. Extracts text content and saves into
@@ -59,16 +58,19 @@ const processDocument = async (event) => {
 
   try {
     // Extract text from PDF
-    const data = await pdf(body)
+    // unpdf is ESM-only, so load it with a dynamic import
+    const { extractText } = await import('unpdf')
+    const data = await extractText(new Uint8Array(body), { mergePages: true })
     console.log('PDF text length: ', data.text.length)
 
     // Write result to staging S3 bucket
-    console.log(await s3.send(new PutObjectCommand({
+    await s3.send(new PutObjectCommand({
       Bucket: process.env.OutputBucket,
       Key: `pdf/${Key}.txt`,
       Body: data.text,
       ContentType: 'application/text'
-    })))
+    }))
+    console.log(`Saved to S3: pdf/${Key}.txt`)
 
   } catch (err) {
     console.error(`Handler error: ${err}`)

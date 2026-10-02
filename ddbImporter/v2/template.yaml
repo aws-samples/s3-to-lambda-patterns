@@ -11,7 +11,7 @@ Resources:
   InputS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref InputBucketName
+      BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
 
   MySqsQueue:
     Type: AWS::SQS::Queue
@@ -33,6 +33,8 @@ Resources:
       CodeUri: addToQueueFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       Timeout: 30
       MemorySize: 256
       Environment:
@@ -44,7 +46,7 @@ Resources:
         - SQSSendMessagePolicy:
             QueueName: !GetAtt MySqsQueue.QueueName
         - S3ReadPolicy:
-            BucketName: !Ref InputBucketName
+            BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
       Events:
         FileUpload:
           Type: S3
@@ -63,6 +65,8 @@ Resources:
       CodeUri: loaderFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       Timeout: 10
       MemorySize: 128
       ReservedConcurrentExecutions: 1

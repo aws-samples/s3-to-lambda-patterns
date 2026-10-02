@@ -18,14 +18,15 @@
 const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge')
 const eventbridge = new EventBridgeClient({})
 
-// Invoked when a S3 event occurs.
+// Invoked when a S3 "Object Created" event occurs.
 
 // The standard Lambda handler
 exports.handler = async (event) => {
   console.log(JSON.stringify(event, null, 2))
 
-  // Incoming key is URL encoded
-  const key = decodeURIComponent(event.detail.requestParameters.key.replace(/\+/g, ' '))
+  // Unlike S3 event notifications sent directly to Lambda, object keys in
+  // S3 EventBridge events are not URL-encoded, so they can be used as-is
+  const key = event.detail.object.key
 
   // Prepare outgoing event
   const params = {
@@ -34,9 +35,9 @@ exports.handler = async (event) => {
       DetailType: 'PutObject',
       EventBusName: 'default',
       Detail: JSON.stringify({
-        bucket: event.detail.requestParameters.bucketName,
+        bucket: event.detail.bucket.name,
         key,
-        type: key.split('.')[1]
+        type: key.split('.').pop().toLowerCase()
       })
     }]
   }

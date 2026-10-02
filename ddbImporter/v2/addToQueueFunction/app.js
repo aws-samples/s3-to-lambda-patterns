@@ -32,9 +32,10 @@ exports.handler = async (event) => {
         console.log('Incoming record: ', record)
 
         // Get original text from object in incoming event
+        // (S3 event keys are URL-encoded, with spaces as '+')
         const originalText = await s3.send(new GetObjectCommand({
           Bucket: record.s3.bucket.name,
-          Key: record.s3.object.key
+          Key: decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
         }))
 
         // Upload JSON to DynamoDB
@@ -93,7 +94,7 @@ const addToSQS = async (data) => {
         batchCount++
         console.log('Trying batch: ', batchCount)
         const result = await sqs.send(new SendMessageCommand(params))
-        console.log('Success: ', result)
+        console.log('Success: ', result.MessageId)
       } catch (err) {
         console.error('Error: ', err)
       }

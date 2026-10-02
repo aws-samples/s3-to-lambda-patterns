@@ -54,8 +54,8 @@ sam deploy --template-file packaged.yaml --capabilities CAPABILITY_IAM --stack-n
 ## Parameter Details
 
 * Target Language: a space-separated list of languages to translate the original text into (e.g. "fr es de")
-* InputBucketName: the unique name of a new S3 bucket for this application (bucket names must be lowercase only and globally unique across AWS)
-* BatchingBucketName: the unique name of a new S3 bucket for this application.
+* InputBucketName: a lowercase name prefix for a new S3 bucket for this application. The template appends your account ID and Region (`<prefix>-<account-id>-<region>`) so the bucket name is globally unique.
+* BatchingBucketName: a lowercase name prefix for a new S3 bucket for this application. The template appends your account ID and Region (`<prefix>-<account-id>-<region>`) so the bucket name is globally unique.
 
 ## How it works
 

@@ -21,6 +21,16 @@ const transcribeService = new TranscribeClient({ region: process.env.AWS_REGION 
 // Language list: [en-IE, ar-AE, te-IN, en-US, en-AB, ta-IN, en-IN, ar-SA, zh-CN, gd-GB, tr-TR, id-ID, nl-NL, es-ES, pt-PT, ru-RU, it-IT, fr-FR, de-DE, ga-IE, af-ZA, ko-KR, de-CH, hi-IN, cy-GB, ms-MY, he-IL, da-DK, en-AU, en-WL, pt-BR, fa-IR, ja-JP, es-US, en-GB, fr-CA]
 const LanguageCode = 'en-US'
 
+// Job names must match ^[0-9a-zA-Z._-]+ and be no longer than 200 characters
+const MAX_JOB_NAME_LENGTH = 200
+
+// Builds a valid, unique job name from the object key
+const getJobName = (key) => {
+  const suffix = `-${Date.now()}`
+  const baseName = key.replace(/[^0-9a-zA-Z._-]/g, '-').substring(0, MAX_JOB_NAME_LENGTH - suffix.length)
+  return `${baseName}${suffix}`
+}
+
 exports.handler = async (event) => {
   const records = event.Records
   console.log (JSON.stringify(event, null, 2))
@@ -28,8 +38,10 @@ exports.handler = async (event) => {
   try {
     await Promise.all(
       records.map((record) => {
-        const mediaUrl = `https://s3.amazonaws.com/${record.s3.bucket.name}/${record.s3.object.key}`
-        const TranscriptionJobName = `${record.s3.object.key}-${Date.now()}`
+        // S3 event keys are URL-encoded, with spaces as '+'
+        const Key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
+        const mediaUrl = `s3://${record.s3.bucket.name}/${Key}`
+        const TranscriptionJobName = getJobName(Key)
     
         console.log('S3 object: ', mediaUrl)
         console.log('Job name: ', TranscriptionJobName)

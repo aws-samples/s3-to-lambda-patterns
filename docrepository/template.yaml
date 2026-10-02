@@ -28,15 +28,15 @@ Resources:
   DocumentsBucket:
     Type: AWS::S3::Bucket  
     Properties:
-      BucketName: !Ref DocumentsBucketName
+      BucketName: !Sub '${DocumentsBucketName}-${AWS::AccountId}-${AWS::Region}'
   StagingBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref StagingBucketName
+      BucketName: !Sub '${StagingBucketName}-${AWS::AccountId}-${AWS::Region}'
   QueuedBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref QueuedBucketName
+      BucketName: !Sub '${QueuedBucketName}-${AWS::AccountId}-${AWS::Region}'
 
   ## SQS queue
   MySqsQueue:
@@ -50,6 +50,8 @@ Resources:
       CodeUri: queryESindex/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
       Timeout: 10
       ReservedConcurrentExecutions: 1
@@ -69,6 +71,8 @@ Resources:
       CodeUri: addToESindex/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
       Timeout: 10
       ReservedConcurrentExecutions: 1
@@ -77,7 +81,7 @@ Resources:
           domain: !Ref ESdomain          
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref QueuedBucketName        
+            BucketName: !Sub '${QueuedBucketName}-${AWS::AccountId}-${AWS::Region}'        
         - Statement:
           - Effect: Allow
             Resource: '*'
@@ -96,15 +100,17 @@ Resources:
       CodeUri: batchingFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 512
       Environment:
         Variables:
-          OutputBucket: !Ref QueuedBucketName
+          OutputBucket: !Sub '${QueuedBucketName}-${AWS::AccountId}-${AWS::Region}'
       Policies:
         - S3CrudPolicy:
-            BucketName: !Ref QueuedBucketName
+            BucketName: !Sub '${QueuedBucketName}-${AWS::AccountId}-${AWS::Region}'
         - S3ReadPolicy:
-            BucketName: !Ref StagingBucketName
+            BucketName: !Sub '${StagingBucketName}-${AWS::AccountId}-${AWS::Region}'
       Events:
         OriginalTextUpload:
           Type: S3
@@ -123,6 +129,8 @@ Resources:
       CodeUri: addToQueueFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       Timeout: 15
       MemorySize: 128
       Environment:
@@ -132,7 +140,7 @@ Resources:
         - SQSSendMessagePolicy:
             QueueName: !GetAtt MySqsQueue.QueueName
         - S3ReadPolicy:
-            BucketName: !Ref QueuedBucketName
+            BucketName: !Sub '${QueuedBucketName}-${AWS::AccountId}-${AWS::Region}'
        
       Events:
         FileUpload:
@@ -147,17 +155,19 @@ Resources:
       CodeUri: processJPG/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
       Environment:
         Variables:
-          OutputBucket: !Ref QueuedBucketName
+          OutputBucket: !Sub '${QueuedBucketName}-${AWS::AccountId}-${AWS::Region}'
           MaxLabels: 5
           MinConfidence: 60
       Policies:
         - S3CrudPolicy:
-            BucketName: !Ref QueuedBucketName
+            BucketName: !Sub '${QueuedBucketName}-${AWS::AccountId}-${AWS::Region}'
         - S3ReadPolicy:
-            BucketName: !Ref DocumentsBucketName
+            BucketName: !Sub '${DocumentsBucketName}-${AWS::AccountId}-${AWS::Region}'
         - Statement:
           - Effect: Allow
             Resource: '*'
@@ -181,15 +191,17 @@ Resources:
       CodeUri: processDOCX/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 512
       Environment:
         Variables:
-          OutputBucket: !Ref StagingBucketName
+          OutputBucket: !Sub '${StagingBucketName}-${AWS::AccountId}-${AWS::Region}'
       Policies:
         - S3CrudPolicy:
-            BucketName: !Ref StagingBucketName
+            BucketName: !Sub '${StagingBucketName}-${AWS::AccountId}-${AWS::Region}'
         - S3ReadPolicy:
-            BucketName: !Ref DocumentsBucketName
+            BucketName: !Sub '${DocumentsBucketName}-${AWS::AccountId}-${AWS::Region}'
       Events:
         Upload:
           Type: S3
@@ -208,15 +220,17 @@ Resources:
       CodeUri: processPDF/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 512
       Environment:
         Variables:
-          OutputBucket: !Ref StagingBucketName
+          OutputBucket: !Sub '${StagingBucketName}-${AWS::AccountId}-${AWS::Region}'
       Policies:
         - S3CrudPolicy:
-            BucketName: !Ref StagingBucketName
+            BucketName: !Sub '${StagingBucketName}-${AWS::AccountId}-${AWS::Region}'
         - S3ReadPolicy:
-            BucketName: !Ref DocumentsBucketName
+            BucketName: !Sub '${DocumentsBucketName}-${AWS::AccountId}-${AWS::Region}'
       Events:
         Upload:
           Type: S3

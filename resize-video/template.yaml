@@ -9,20 +9,32 @@ Parameters:
   OutputBucketName:
     Type: String
     Default: 'video-converter-example-dest'
-  LayerARN:
-    Type: String
-    Default: 'ENTER YOUR LAYER ARN HERE'
 
 Resources:
   ## S3 buckets
   SourceBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref SourceBucketName
+      BucketName: !Sub '${SourceBucketName}-${AWS::AccountId}-${AWS::Region}'
   OutputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref OutputBucketName
+      BucketName: !Sub '${OutputBucketName}-${AWS::AccountId}-${AWS::Region}'
+
+  ## Lambda layers
+  FfmpegLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      Description: Static FFmpeg and FFprobe binaries for Linux arm64
+      ContentUri: ffmpegLayer/
+      # Remove old layer versions when the stack is updated or deleted
+      RetentionPolicy: Delete
+      CompatibleArchitectures:
+        - arm64
+      CompatibleRuntimes:
+        - nodejs24.x
+    Metadata:
+      BuildMethod: makefile
 
   ## Lambda functions
   ResizeFunction:
@@ -31,20 +43,22 @@ Resources:
       CodeUri: resizeFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       Timeout: 900
       MemorySize: 10240
       EphemeralStorage:
         Size: 10240      
       Layers:
-        - !Ref LayerARN
+        - !Ref FfmpegLayer
       Environment:
         Variables:
-          OutputBucketName: !Ref OutputBucketName
+          OutputBucketName: !Sub '${OutputBucketName}-${AWS::AccountId}-${AWS::Region}'
       Policies:
         - S3ReadPolicy:
-            BucketName: !Ref SourceBucketName
+            BucketName: !Sub '${SourceBucketName}-${AWS::AccountId}-${AWS::Region}'
         - S3WritePolicy:
-            BucketName: !Ref OutputBucketName
+            BucketName: !Sub '${OutputBucketName}-${AWS::AccountId}-${AWS::Region}'
       Events:
         CreatedEvent:
           Type: S3

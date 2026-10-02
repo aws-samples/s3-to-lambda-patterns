@@ -25,8 +25,6 @@ const sqs = new SQSClient({ region: process.env.AWS_REGION })
 const TableName = process.env.DDBtable
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION }))
 
-let messages = []
-
 // Entire list of language codes at: https://docs.aws.amazon.com/translate/latest/dg/how-it-works.html#how-it-works-language-codes
 const supportedLanguages = ['ar','zh','zh-TW','cs','da','nl','en','fi','fr','de','he','hi','id','it','ja','ko','ms','no','fa','pl','pt','ru','es','sv','tr']
 const targetLanguages = process.env.targetLanguage.split(' ')
@@ -41,11 +39,14 @@ exports.handler = async (event) => {
   }
 
   // Iterate through incoming records and language list
+  const messages = []
   event.Records.map((record) => {
+    // S3 event keys are URL-encoded, with spaces as '+'
+    const Key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
     targetLanguages.map((targetLanguage) => {
       messages.push({
         Bucket: record.s3.bucket.name,
-        Key: record.s3.object.key,
+        Key,
         Language: targetLanguage
       })
     })
@@ -78,15 +79,14 @@ const addToSQS = async (messages) => {
   await Promise.all(
     batches.map(async (item_data) => {
 
-      const items = []
-  
-      item_data.forEach(async item => {
-        items.push({
-          Id: `${Date.now()}-${parseInt(Math.random()*100000)}`,
-          MessageBody: JSON.stringify(item)
-        })
-        await saveToDDB(item)
-      })
+      // Ids only need to be unique within a batch
+      const items = item_data.map((item, index) => ({
+        Id: `${index}`,
+        MessageBody: JSON.stringify(item)
+      }))
+
+      // Record each item as queued in DynamoDB
+      await Promise.all(item_data.map((item) => saveToDDB(item)))
 
       // Params object for SQS
       const params = {
@@ -101,7 +101,7 @@ const addToSQS = async (messages) => {
         batchCount++
         console.log(`Trying batch: ${batchCount}`)
         const result = await sqs.send(new SendMessageBatchCommand(params))
-        console.log(`Success: ${result}`)
+        console.log(`Success: ${result.Successful?.length || 0} sent, ${result.Failed?.length || 0} failed`)
       } catch (err) {
         console.error(`Error: ${err}`)
       }

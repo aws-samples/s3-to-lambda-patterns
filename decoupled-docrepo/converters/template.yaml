@@ -2,6 +2,13 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: docrepo-converters
 
+Parameters:
+  # Name of the stack deployed from the setup directory - used to import
+  # the ARN of the S3 read policy exported by that stack
+  SetupStackName:
+    Type: String
+    Default: 'docrepo-setup'
+
 Resources:
   # EventBridge rules 
   EventRulePDF: 
@@ -76,10 +83,12 @@ Resources:
       CodeUri: processPDF/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       Timeout: 15
       MemorySize: 512
       Policies:
-        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/docrepo-s3-read-policy'
+        - Fn::ImportValue: !Sub '${SetupStackName}-S3ReadPolicyArn'
         - Statement:
           - Effect: Allow
             Resource: '*'
@@ -92,10 +101,12 @@ Resources:
       CodeUri: processDOCX/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       Timeout: 15
       MemorySize: 512
       Policies:
-        - !Sub 'arn:aws:iam::${AWS::AccountId}:policy/docrepo-s3-read-policy'
+        - Fn::ImportValue: !Sub '${SetupStackName}-S3ReadPolicyArn'
         - Statement:
           - Effect: Allow
             Resource: '*'

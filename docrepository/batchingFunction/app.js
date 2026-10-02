@@ -75,12 +75,11 @@ const doBatching = async (event) => {
 
   console.log(`Total sentences: ${sentences.length}`)
 
-  // // Package into batches of sentences <MAX_CHARS total
+  // Package into batches of sentences <MAX_CHARS total
+  // (always take at least one sentence so the loop progresses)
   while (sentences.length > 0) {
-    const nextIndex = findMaxBatchSize(sentences)
-    if (nextIndex === -1) break
-    // console.log(sentences.length, nextIndex)
-    batches.push(sentences.splice(0, nextIndex))
+    const batchSize = Math.max(findMaxBatchSize(sentences), 1)
+    batches.push(sentences.splice(0, batchSize))
   }
 
   console.log(`Total batches: ${batches.length}`)
@@ -93,35 +92,28 @@ const doBatching = async (event) => {
       console.log(counter, batch.join(sentenceDelimeter))
 
       const newKey = Key.replace('.txt', `-${counter}.txt`)
-      const result = await s3.send(new PutObjectCommand({
+      await s3.send(new PutObjectCommand({
         Bucket: process.env.OutputBucket,
         Key: newKey,
         Body: batch.join(' '),
         ContentType: 'text/plain'
       }))
 
-      console.log('S3 result: ', result)
+      console.log('Saved to S3: ', newKey)
     })
   )
 }
 
-// Takes arrays of text and returns the index before
-// the total length exceeds MAX_CHARS.
+// Takes arrays of text and returns the number of sentences
+// that fit before the total length reaches MAX_CHARS.
 const findMaxBatchSize = (sentences) => {
-
-  // Defaults position to end of array
-  // for when the total size is < MAX
-  let pos = sentences.length + 1
   let currTotalChar = 0
 
   for (let i = 0; i < sentences.length; i++) {
     currTotalChar += sentences[i].length + sentenceDelimeter.length
-    if (currTotalChar >= MAX_CHARS) {
-      pos = i
-      break
-    }
+    if (currTotalChar >= MAX_CHARS) return i
   }
 
-  // console.log(`Index: ${pos}. Total chars: ${currTotalChar}`)
-  return pos - 1
+  // All remaining sentences fit
+  return sentences.length
 }

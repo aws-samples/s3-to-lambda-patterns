@@ -18,7 +18,6 @@
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
 const s3 = new S3Client({})
 
-const pdf = require('pdf-parse')
 
 const { doBatching } = require('./batching')
 const { putEvents } = require('./eventbridge')
@@ -58,7 +57,9 @@ const processDocument = async (event) => {
   const body = Buffer.from(await result.Body.transformToByteArray())
 
   // Extract text from PDF
-  const data = await pdf(body)
+  // unpdf is ESM-only, so load it with a dynamic import
+  const { extractText } = await import('unpdf')
+  const data = await extractText(new Uint8Array(body), { mergePages: true })
   console.log('PDF text length: ', data.text.length)
   return data.text
 }

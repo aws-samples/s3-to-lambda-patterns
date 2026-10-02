@@ -6,19 +6,33 @@ Parameters:
   InputBucketName:
     Type: String
     Default: 'patterns-s3workflow'
+  RequiredLabels:
+    Type: String
+    Description: Comma-separated Rekognition labels that must all be found for a match (leave empty to skip)
+    Default: 'Cat,Mammal'
+  RequiredWords:
+    Type: String
+    Description: Comma-separated words that must all be found in the image text for a match (leave empty to skip)
+    Default: ''
+  MinConfidence:
+    Type: Number
+    Description: Minimum Rekognition confidence for labels and words
+    Default: 70
 
 Globals:
   Function:
     Timeout: 15
     MemorySize: 128
     Runtime: nodejs24.x    
+    Architectures:
+      - arm64
 
 Resources:
   ## S3 buckets
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref InputBucketName
+      BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
 
   ## Lambda functions
   StartExecutionFunction:
@@ -27,42 +41,21 @@ Resources:
       CodeUri: StartExecutionFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
       Environment:
         Variables:
           stateMachineArn: !Ref 'MatcherStateMachine'
       Policies:
-        - S3CrudPolicy:
-            BucketName: !Ref InputBucketName
-        - Statement:
-          - Effect: Allow
-            Resource: !Ref 'MatcherStateMachine'
-            Action:
-              - states:*
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt MatcherStateMachine.Name
       Events:
         FileUpload:
           Type: S3
           Properties:
             Bucket: !Ref InputBucket
             Events: s3:ObjectCreated:*
-
-  DeciderFunction:
-    Type: AWS::Serverless::Function 
-    Properties:
-      CodeUri: deciderFunction/
-      Handler: app.handler
-      Environment:
-        Variables:
-          requiredLabels: 'Cat Mammal'    
-          minConfidence: 70
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !Ref InputBucketName        
-        - Statement:
-          - Effect: Allow
-            Resource: '*'
-            Action:
-              - rekognition:*
 
   MatchFunction:
     Type: AWS::Serverless::Function 
@@ -78,78 +71,23 @@ Resources:
 
 
   ## Step Functions state machine
+  # Calls Rekognition directly using the AWS SDK service integration - see statemachine/matcher.asl.json
   MatcherStateMachine:
-    Type: 'AWS::StepFunctions::StateMachine'
+    Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionString: !Sub |
-        {
-          "Comment": "Does this match or not?",
-          "StartAt": "Decider",
-          "States": {
-            "Decider": {
-              "Type": "Task",
-              "Resource": "${DeciderFunction.Arn}",
-              "Next": "ChoiceState"
-            },
-            "ChoiceState": {
-              "Type" : "Choice",
-              "Choices": [
-                {
-                  "Variable": "$",
-                  "StringEquals": "Match",
-                  "Next": "MatchFound"
-                },
-                {
-                  "Variable": "$",
-                  "StringEquals": "NoMatch",
-                  "Next": "NoMatchFound"
-                }
-              ],
-              "Default": "Unknown"
-            },
-
-            "MatchFound": {
-              "Type" : "Task",
-              "Resource": "${MatchFunction.Arn}",
-              "Next": "NextState"
-            },
-
-            "NoMatchFound": {
-              "Type" : "Task",
-              "Resource": "${NoMatchFunction.Arn}",
-              "Next": "NextState"
-            },
-
-            "Unknown": {
-              "Type": "Fail",
-              "Error": "DefaultStateError",
-              "Cause": "Failed test!"
-            },
-
-            "NextState": {
-              "Type": "Pass",
-              "End": true
-            }
-          }
-        }
-      RoleArn: !GetAtt 'StateMachineRole.Arn'
-
-  # IAM roles
-  StateMachineRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: !Sub 'states.${AWS::Region}.amazonaws.com'
-          Action: 'sts:AssumeRole'
+      DefinitionUri: statemachine/matcher.asl.json
+      DefinitionSubstitutions:
+        MatchFunctionArn: !GetAtt MatchFunction.Arn
+        NoMatchFunctionArn: !GetAtt NoMatchFunction.Arn
+        RequiredLabels: !Ref RequiredLabels
+        RequiredWords: !Ref RequiredWords
+        MinConfidence: !Ref MinConfidence
       Policies:
-      - PolicyName: lambda
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action: 'lambda:InvokeFunction'
-            Resource:
-            - '*'
+        - LambdaInvokePolicy:
+            FunctionName: !Ref MatchFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref NoMatchFunction
+        # Rekognition reads the image from S3 using the state machine's credentials
+        - RekognitionDetectOnlyPolicy: {}
+        - S3ReadPolicy:
+            BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'

@@ -1,77 +1,29 @@
 {
     "version": "0",
-    "id": "bf8e0ba6-59f4-88c3-ade9-123456789012",
-    "detail-type": "AWS API Call via CloudTrail",
+    "id": "17793124-05d4-b198-2fde-7ededc63b103",
+    "detail-type": "Object Created",
     "source": "aws.s3",
-    "account": "763653534548",
-    "time": "2020-04-02T14:55:12Z",
+    "account": "123456789012",
+    "time": "2021-11-12T00:00:00Z",
     "region": "us-east-1",
-    "resources": [],
+    "resources": [
+        "arn:aws:s3:::patterns-s3-eventbridge-docs1"
+    ],
     "detail": {
-        "eventVersion": "1.07",
-        "userIdentity": {
-            "type": "AssumedRole",
-            "principalId": "AROA3DTK123456789012:jbeswick",
-            "arn": "arn:aws:sts::123456789012:assumed-role/FullAccess/jbeswick",
-            "accountId": "123456789012",
-            "accessKeyId": "ASIA123456789012",
-            "sessionContext": {
-                "sessionIssuer": {
-                    "type": "Role",
-                    "principalId": "AROA3123456789012",
-                    "arn": "arn:aws:iam::123456789012:role/FullAccess",
-                    "accountId": "123456789012",
-                    "userName": "FullAccess"
-                },
-                "attributes": {
-                    "creationDate": "2020-04-02T12:41:02Z",
-                    "mfaAuthenticated": "false"
-                }
-            }
+        "version": "0",
+        "bucket": {
+            "name": "patterns-s3-eventbridge-docs1"
         },
-        "eventTime": "2020-04-02T14:55:12Z",
-        "eventSource": "s3.amazonaws.com",
-        "eventName": "PutObject",
-        "awsRegion": "us-east-1",
-        "sourceIPAddress": "72.21.196.69",
-        "userAgent": "[Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.149 Safari/537.36]",
-        "requestParameters": {
-            "X-Amz-Date": "20200402T145511Z",
-            "bucketName": "patterns-s3-eventbridge-docs1",
-            "X-Amz-Algorithm": "AWS4-HMAC-SHA256",
-            "x-amz-acl": "private",
-            "X-Amz-SignedHeaders": "content-md5;content-type;host;x-amz-acl;x-amz-storage-class",
-            "Host": "patterns-s3-eventbridge-docs1.s3.us-east-1.amazonaws.com",
-            "X-Amz-Expires": "300",
+        "object": {
             "key": "resume-paul-renoir.pdf",
-            "x-amz-storage-class": "STANDARD"
+            "size": 871563,
+            "etag": "b1946ac92492d2347c6235b4d2611184",
+            "version-id": "IYV3p45BT0ac8hjHg1houSdS1a.Mro8e",
+            "sequencer": "00617F08299329D189"
         },
-        "responseElements": null,
-        "additionalEventData": {
-            "SignatureVersion": "SigV4",
-            "CipherSuite": "ECDHE-RSA-AES128-GCM-SHA256",
-            "bytesTransferredIn": 871563,
-            "AuthenticationMethod": "QueryString",
-            "x-amz-id-2": "Ai+jZM6EUt/123456789012/USz4NuXy+405ul/Y7Cyj9+CXXJ+123456789012/JPnc=",
-            "bytesTransferredOut": 0
-        },
-        "requestID": "123456789012",
-        "eventID": "e70417bd-e480-4367-9496-123456789012",
-        "readOnly": false,
-        "resources": [
-            {
-                "type": "AWS::S3::Object",
-                "ARN": "arn:aws:s3:::patterns-s3-eventbridge-docs1/test.pdf"
-            },
-            {
-                "accountId": "123456789012",
-                "type": "AWS::S3::Bucket",
-                "ARN": "arn:aws:s3:::patterns-s3-eventbridge-docs1"
-            }
-        ],
-        "eventType": "AwsApiCall",
-        "managementEvent": false,
-        "recipientAccountId": "123456789012",
-        "eventCategory": "Data"
+        "request-id": "N4N7GDK58NMKJ12R",
+        "requester": "123456789012",
+        "source-ip-address": "1.2.3.4",
+        "reason": "PutObject"
     }
 }

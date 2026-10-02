@@ -46,7 +46,7 @@ Important: this application uses various AWS services and there are costs associ
 sam build
 sam deploy --guided
 ```
-Follow the prompts in the deploy process to set the stack name, AWS Region, unique bucket names, Elasticsearch domain endpoint, and other parameters.
+Follow the prompts in the deploy process to set the stack name, AWS Region, bucket name prefixes (the templates append your account ID and Region to make them globally unique), Elasticsearch domain endpoint, and other parameters.
 
 ## How it works
 

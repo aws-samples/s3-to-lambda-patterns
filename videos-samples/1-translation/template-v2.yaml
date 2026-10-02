@@ -23,11 +23,11 @@ Resources:
   BatchingBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref BatchingBucketName
+      BucketName: !Sub '${BatchingBucketName}-${AWS::AccountId}-${AWS::Region}'
   TranslationBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref TranslationBucketName
+      BucketName: !Sub '${TranslationBucketName}-${AWS::AccountId}-${AWS::Region}'
 
   ## Lambda functions
   TranslatorFunction:
@@ -36,13 +36,15 @@ Resources:
       CodeUri: translatorFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
       Environment:
         Variables:
           targetLanguage: !Ref TargetLanguage
       Policies:
         - S3CrudPolicy:
-            BucketName: !Ref TranslationBucketName
+            BucketName: !Sub '${TranslationBucketName}-${AWS::AccountId}-${AWS::Region}'
         - Statement:
           - Effect: Allow
             Resource: '*'
@@ -69,15 +71,17 @@ Resources:
       CodeUri: batchingFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 512
       Environment:
         Variables:
-          OutputBucket: !Ref TranslationBucketName
+          OutputBucket: !Sub '${TranslationBucketName}-${AWS::AccountId}-${AWS::Region}'
       Policies:
         - S3CrudPolicy:
-            BucketName: !Ref TranslationBucketName
+            BucketName: !Sub '${TranslationBucketName}-${AWS::AccountId}-${AWS::Region}'
         - S3ReadPolicy:
-            BucketName: !Ref BatchingBucketName
+            BucketName: !Sub '${BatchingBucketName}-${AWS::AccountId}-${AWS::Region}'
       Events:
         OriginalTextUpload:
           Type: S3

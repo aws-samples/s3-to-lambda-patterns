@@ -45,7 +45,7 @@ const processImage = async (event) => {
 
   // Get object info
   const Bucket = event.s3.bucket.name
-  const Name = event.s3.object.key
+  const Name = decodeURIComponent(event.s3.object.key.replace(/\+/g, ' '))
   console.log(`Bucket: ${Bucket}, Key: ${Name}`)
 
   // Rekognition expected params
@@ -69,12 +69,13 @@ const processImage = async (event) => {
     console.log('Rekognition labels: ', labels)
 
     // Write result to output S3 bucket
-    console.log(await s3.send(new PutObjectCommand({
+    await s3.send(new PutObjectCommand({
       Bucket: process.env.OutputBucket,
       Key: `images/${Name}.json`,
       Body: JSON.stringify(labels),
       ContentType: 'application/json'
-    })))
+    }))
+    console.log(`Saved to S3: images/${Name}.json`)
   } catch (err) {
     console.error(`Handler error: ${err}`)
   }

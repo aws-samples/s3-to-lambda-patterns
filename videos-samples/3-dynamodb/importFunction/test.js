@@ -17,7 +17,7 @@
 'use strict'
 
 process.env.AWS_REGION = "us-west-2"
-process.env.ddbTable = '<<enter your table name>>'
+process.env.DDBtable = '<<enter your table name>>'
 
 const { handler } = require('./app')
 

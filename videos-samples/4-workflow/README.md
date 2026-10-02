@@ -13,6 +13,8 @@ Important: this application uses various AWS services and there are costs associ
 ├── foundFunction               <-- Source code for a lambda function
 │   └── cat.js                  <-- Main Lambda handler for cat images
 │   └── dog.js                  <-- Main Lambda handler for dog images
+├── statemachine
+│   └── dogorcat.asl.json       <-- State machine definition (calls Rekognition directly)
 ├── template.yaml               <-- SAM template
 ```
 
@@ -33,13 +35,22 @@ sam deploy --template-file packaged.yaml --capabilities CAPABILITY_IAM --stack-n
 
 ## Parameter Details
 
-* InputBucketName: the unique name of a new S3 bucket for this application (bucket names must be lowercase only and globally unique across AWS)
+* InputBucketName: a lowercase name prefix for a new S3 bucket for this application. The template appends your account ID and Region (`<prefix>-<account-id>-<region>`) so the bucket name is globally unique.
 
 ## How it works
 
 * Upload an image file (ending in the suffix '.jpg') to the target S3 bucket.
-* This will trigger a state machine. The first Lambda function uses Rekognition to determine if the image is a dog or cat.
-* This determines whether the dog or cat handler is run. If neither is present, the state machine throws an error.
+* This invokes the `processFunction` Lambda function, which starts the state machine with the bucket name and (decoded) object key.
+* The first state calls Amazon Rekognition `DetectLabels` directly using the Step Functions [AWS SDK service integration](https://docs.aws.amazon.com/step-functions/latest/dg/supported-services-awssdk.html) - no Lambda function is needed. A [JSONata](https://docs.aws.amazon.com/step-functions/latest/dg/transforming-data.html) expression turns the labels into `Dog`, `Cat` or `Unknown`.
+* This determines whether the dog or cat handler is run. If neither is present, the state machine fails with `No Matches!`.
+
+## Testing
+
+Upload a JPG photo of a dog or a cat to the input bucket, then open the state machine in the Step Functions console to view the execution:
+
+```
+aws s3 cp dog.jpg s3://<<input bucket name>>/dog.jpg
+```
 
 ==============================================
 

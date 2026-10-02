@@ -50,9 +50,12 @@ const doBatching = async (event) => {
   let batches = []
   // const file = await fs.readFile('./war-and-peace.txt', 'utf8')
 
+  // S3 event keys are URL-encoded, with spaces as '+'
+  const Key = decodeURIComponent(event.s3.object.key.replace(/\+/g, ' '))
+
   const originalText = await getS3object({
     Bucket: event.s3.bucket.name,
-    Key: event.s3.object.key
+    Key
   })
 
   // Split into chunks
@@ -76,15 +79,15 @@ const doBatching = async (event) => {
       counter++
       console.log(counter, batch.join(' '))
 
-      const newKey = event.s3.object.key.replace('.txt', `-${counter}.txt`)
-      const result = await putS3object({
+      const newKey = Key.replace('.txt', `-${counter}.txt`)
+      await putS3object({
         Bucket: process.env.OutputBucket,
         Key: newKey,
         Body: batch.join(' '),
         ContentType: 'text/plain'
       })
 
-      console.log('S3 result: ', result)
+      console.log('Saved to S3: ', newKey)
     })
   )
 }

@@ -18,13 +18,13 @@
 const { SQSClient, SendMessageBatchCommand } = require('@aws-sdk/client-sqs')
 const sqs = new SQSClient({ region: process.env.AWS_REGION })
 
-let messages = []
-
 // The Lambda handler
 exports.handler = async (event) => {
   console.log (JSON.stringify(event, null, 2))
 
-  // Iterate through incoming records and language list
+  // Iterate through incoming records and language list.
+  // The key is left URL-encoded here and decoded in addToESindex.
+  const messages = []
   event.Records.map((record) => {
     messages.push({
       Bucket: record.s3.bucket.name,
@@ -60,14 +60,11 @@ const addToSQS = async (messages) => {
   await Promise.all(
     batches.map(async (item_data) => {
 
-      const items = []
-  
-      item_data.forEach(async item => {
-        items.push({
-          Id: `${Date.now()}-${parseInt(Math.random()*100000)}`,
-          MessageBody: JSON.stringify(item)
-        })
-      })
+      // Ids only need to be unique within a batch
+      const items = item_data.map((item, index) => ({
+        Id: `${index}`,
+        MessageBody: JSON.stringify(item)
+      }))
 
       // Params object for SQS
       const params = {
@@ -82,7 +79,7 @@ const addToSQS = async (messages) => {
         batchCount++
         console.log(`Trying batch: ${batchCount}`)
         const result = await sqs.send(new SendMessageBatchCommand(params))
-        console.log(`Success: ${result}`)
+        console.log(`Success: ${result.Successful?.length || 0} sent, ${result.Failed?.length || 0} failed`)
       } catch (err) {
         console.error(`Error: ${err}`)
       }

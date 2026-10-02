@@ -16,7 +16,7 @@ Resources:
   InputBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Ref InputBucketName
+      BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'
 
   ## Lambda functions
   ProcessFunction:
@@ -25,18 +25,15 @@ Resources:
       CodeUri: processFunction/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
       Environment:
         Variables:
           stateMachineArn: !Ref 'DogOrCatStateMachine'
       Policies:
-        - S3CrudPolicy:
-            BucketName: !Ref InputBucketName
-        - Statement:
-          - Effect: Allow
-            Resource: '*'
-            Action:
-              - states:*
+        - StepFunctionsExecutionPolicy:
+            StateMachineName: !GetAtt DogOrCatStateMachine.Name
       Events:
         FileUpload:
           Type: S3
@@ -55,6 +52,8 @@ Resources:
       CodeUri: foundFunction/
       Handler: dog.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128
 
   CatFoundFunction:
@@ -63,81 +62,25 @@ Resources:
       CodeUri: foundFunction/
       Handler: cat.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       MemorySize: 128      
 
   ## Step Functions state machine
+  # Calls Rekognition directly using the AWS SDK service integration - see statemachine/dogorcat.asl.json
   DogOrCatStateMachine:
-    Type: 'AWS::StepFunctions::StateMachine'
+    Type: AWS::Serverless::StateMachine
     Properties:
-      DefinitionString: !Sub |
-        {
-          "Comment": "Is it a dog or a cat?",
-          "StartAt": "IsDogOrCat",
-          "States": {
-            "IsDogOrCat": {
-              "Type": "Task",
-              "Resource": "arn:aws:lambda:us-west-2:763653534548:function:dogCatFunction",
-              "Next": "ChoiceState"
-            },
-            "ChoiceState": {
-              "Type" : "Choice",
-              "Choices": [
-                {
-                  "Variable": "$",
-                  "StringEquals": "Dog",
-                  "Next": "DogFound"
-                },
-                {
-                  "Variable": "$",
-                  "StringEquals": "Cat",
-                  "Next": "CatFound"
-                }
-              ],
-              "Default": "UnknownAnimal"
-            },
-
-            "DogFound": {
-              "Type" : "Task",
-              "Resource": "${DogFoundFunction.Arn}",
-              "Next": "NextState"
-            },
-
-            "CatFound": {
-              "Type" : "Task",
-              "Resource": "${CatFoundFunction.Arn}",
-              "Next": "NextState"
-            },
-
-            "UnknownAnimal": {
-              "Type": "Fail",
-              "Error": "DefaultStateError",
-              "Cause": "No Matches!"
-            },
-
-            "NextState": {
-              "Type": "Pass",
-              "End": true
-            }
-          }
-        }
-      RoleArn: !GetAtt 'StateMachineRole.Arn'
-
-  # IAM roles
-  StateMachineRole:
-    Type: 'AWS::IAM::Role'
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service: !Sub 'states.${AWS::Region}.amazonaws.com'
-          Action: 'sts:AssumeRole'
+      DefinitionUri: statemachine/dogorcat.asl.json
+      DefinitionSubstitutions:
+        DogFoundFunctionArn: !GetAtt DogFoundFunction.Arn
+        CatFoundFunctionArn: !GetAtt CatFoundFunction.Arn
       Policies:
-      - PolicyName: lambda
-        PolicyDocument:
-          Statement:
-          - Effect: Allow
-            Action: 'lambda:InvokeFunction'
-            Resource:
-            - '*'
+        - LambdaInvokePolicy:
+            FunctionName: !Ref DogFoundFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref CatFoundFunction
+        # Rekognition reads the image from S3 using the state machine's credentials
+        - RekognitionDetectOnlyPolicy: {}
+        - S3ReadPolicy:
+            BucketName: !Sub '${InputBucketName}-${AWS::AccountId}-${AWS::Region}'

@@ -49,9 +49,9 @@ Follow the prompts in the deploy process to set the stack name, AWS Region and o
 ## Parameter Details
 
 * Target Language: a space-separated list of languages to translate the original text into (e.g. "fr es de")
-* InputBucketName: the unique name of a new S3 bucket for this application (bucket names must be lowercase only and globally unique across AWS)
-* BatchingBucketName: the unique name of a new S3 bucket for this application.
-* ResultsBucketName: the unique name of a new S3 bucket for this application (v2 only)
+* InputBucketName: a lowercase name prefix for a new S3 bucket for this application. The template appends your account ID and Region (`<prefix>-<account-id>-<region>`) so the bucket name is globally unique.
+* BatchingBucketName: a lowercase name prefix for a new S3 bucket for this application. The template appends your account ID and Region (`<prefix>-<account-id>-<region>`) so the bucket name is globally unique.
+* ResultsBucketName: a lowercase name prefix for a new S3 bucket for this application. The template appends your account ID and Region (`<prefix>-<account-id>-<region>`) so the bucket name is globally unique (v2 only).
 
 ## How it works
 

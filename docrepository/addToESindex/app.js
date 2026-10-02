@@ -43,6 +43,7 @@ exports.handler = async (event) => {
 const processDocument = async (event) => {
 
   console.log('indexDocument: ', event)
+  // Key arrives URL-encoded from the S3 event via addToQueueFunction
   const Key = decodeURIComponent(event.Key.replace(/\+/g, ' '))
   const Bucket = event.Bucket
   const type = Key.split('/')[0]

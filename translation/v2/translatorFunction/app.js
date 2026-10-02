@@ -46,27 +46,25 @@ exports.handler = async (event) => {
 // Translate and save output to S3
 const doTranslation = async (message) => {
   console.log(`doTranslation: ${JSON.stringify(message)}`)
-  return new Promise(async (resolve, reject) => {
-      
-    // Get original text from object in incoming event
-    const originalText = await s3.send(new GetObjectCommand({
-      Bucket: message.Bucket,
-      Key: message.Key
-    }))
- 
-    // Translate the text
-    const data = await translateText(await originalText.Body.transformToString('utf-8'), message.Language)
 
-    // Save the new translation
-    const baseObjectName = message.Key.replace('.txt','')
-    await s3.send(new PutObjectCommand({
-      Bucket: process.env.OutputBucket,
-      Key: `${baseObjectName}-${message.Language}.txt`,
-      Body: data.TranslatedText,
-      ContentType: 'text/plain'
-    }))
-    resolve()
-  })
+  // Get original text from object in incoming event
+  // (message.Key was already URL-decoded by addToQueueFunction)
+  const originalText = await s3.send(new GetObjectCommand({
+    Bucket: message.Bucket,
+    Key: message.Key
+  }))
+
+  // Translate the text
+  const data = await translateText(await originalText.Body.transformToString('utf-8'), message.Language)
+
+  // Save the new translation
+  const baseObjectName = message.Key.replace('.txt','')
+  await s3.send(new PutObjectCommand({
+    Bucket: process.env.OutputBucket,
+    Key: `${baseObjectName}-${message.Language}.txt`,
+    Body: data.TranslatedText,
+    ContentType: 'text/plain'
+  }))
 }
 
 // Save single item to DynamoDB

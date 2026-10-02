@@ -33,7 +33,7 @@ exports.handler = async (event) => {
 
   // Check the output bucket exists
   if (!process.env.OutputBucket)
-    return console.log('Error: process.env.TranslationBucket not defined')
+    return console.log('Error: process.env.OutputBucket not defined')
 
   // Handle each incoming S3 object in the event
   await Promise.all(
@@ -53,9 +53,12 @@ exports.handler = async (event) => {
 const doBatching = async (event) => {
   let batches = []
 
+  // S3 event keys are URL-encoded, with spaces as '+'
+  const Key = decodeURIComponent(event.s3.object.key.replace(/\+/g, ' '))
+
   const originalText = await s3.send(new GetObjectCommand({
     Bucket: event.s3.bucket.name,
-    Key: event.s3.object.key
+    Key
   }))
 
   console.log(`Downloaded object from S3`)
@@ -66,12 +69,11 @@ const doBatching = async (event) => {
 
   console.log(`Total sentences: ${sentences.length}`)
 
-  // // Package into batches of sentences <MAX_CHARS total
+  // Package into batches of sentences <MAX_CHARS total
+  // (always take at least one sentence so the loop progresses)
   while (sentences.length > 0) {
-    const nextIndex = findMaxBatchSize(sentences)
-    if (nextIndex === -1) break
-    // console.log(sentences.length, nextIndex)
-    batches.push(sentences.splice(0, nextIndex))
+    const batchSize = Math.max(findMaxBatchSize(sentences), 1)
+    batches.push(sentences.splice(0, batchSize))
   }
 
   console.log(`Total batches: ${batches.length}`)
@@ -83,36 +85,29 @@ const doBatching = async (event) => {
       counter++
       console.log(counter, batch.join(sentenceDelimeter))
 
-      const newKey = event.s3.object.key.replace('.txt', `-${counter}.txt`)
-      const result = await s3.send(new PutObjectCommand({
+      const newKey = Key.replace('.txt', `-${counter}.txt`)
+      await s3.send(new PutObjectCommand({
         Bucket: process.env.OutputBucket,
         Key: newKey,
         Body: batch.join(' '),
         ContentType: 'text/plain'
       }))
 
-      console.log(`S3 result: ${JSON.stringify(result, null, 0)}`)
+      console.log(`Saved to S3: ${newKey}`)
     })
   )
 }
 
-// Takes arrays of text and returns the index before
-// the total length exceeds MAX_CHARS.
+// Takes arrays of text and returns the number of sentences
+// that fit before the total length reaches MAX_CHARS.
 const findMaxBatchSize = (sentences) => {
-
-  // Defaults position to end of array
-  // for when the total size is < MAX
-  let pos = sentences.length + 1
   let currTotalChar = 0
 
   for (let i = 0; i < sentences.length; i++) {
     currTotalChar += sentences[i].length + sentenceDelimeter.length
-    if (currTotalChar >= MAX_CHARS) {
-      pos = i
-      break
-    }
+    if (currTotalChar >= MAX_CHARS) return i
   }
 
-  // console.log(`Index: ${pos}. Total chars: ${currTotalChar}`)
-  return pos - 1
+  // All remaining sentences fit
+  return sentences.length
 }

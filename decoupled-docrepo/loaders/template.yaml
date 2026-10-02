@@ -44,6 +44,8 @@ Resources:
       CodeUri: loadToES/
       Handler: app.handler
       Runtime: nodejs24.x
+      Architectures:
+        - arm64
       Timeout: 5
       MemorySize: 128
       Environment:

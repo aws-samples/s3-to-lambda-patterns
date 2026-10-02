@@ -37,7 +37,7 @@ Follow the prompts in the deploy process to set the stack name, AWS Region and o
 
 ## Parameter Details
 
-* InputBucketName: the unique name of a new S3 bucket for this application (bucket names must be lowercase only and globally unique across AWS).
+* InputBucketName: a lowercase name prefix for a new S3 bucket for this application. The template appends your account ID and Region (`<prefix>-<account-id>-<region>`) so the bucket name is globally unique.
 
 ## How it works
 

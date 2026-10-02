@@ -25,7 +25,8 @@ exports.handler = async (event) => {
         name: Math.floor(Math.random() * Math.floor(1000000000)).toString(),
         input: JSON.stringify({
             bucket: event.Records[0].s3.bucket.name,
-            key: event.Records[0].s3.object.key
+            // S3 event keys are URL-encoded - decode before passing to Rekognition
+            key: decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '))
         })
     }    
     console.log(params)

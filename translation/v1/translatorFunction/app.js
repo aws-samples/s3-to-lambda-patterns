@@ -29,8 +29,12 @@ const targetLanguages = process.env.targetLanguage.split(' ')
 exports.handler = async (event) => {
   console.log (JSON.stringify(event, null, 2))
 
+  // S3 event keys are URL-encoded, with spaces as '+'
+  const Bucket = event.Records[0].s3.bucket.name
+  const Key = decodeURIComponent(event.Records[0].s3.object.key.replace(/\+/g, ' '))
+
   // Don't fire for any new file in the translations folder
-  if (event.Records[0].s3.object.key.indexOf('translations') > -1) return
+  if (Key.indexOf('translations') > -1) return
 
   // Check incoming language list matches supported languages
   if (arrayContainsArray(supportedLanguages, targetLanguages) === false) {
@@ -40,7 +44,7 @@ exports.handler = async (event) => {
   await Promise.all(
     targetLanguages.map(async (targetLanguage) => {
       try {
-        await doTranslation(event, targetLanguage)
+        await doTranslation(Bucket, Key, targetLanguage)
       } catch (err) {
         console.error(`Handler error: ${err}`)
       }
@@ -49,28 +53,21 @@ exports.handler = async (event) => {
 }
 
 // The translation function
-const doTranslation = async (event, targetLanguage) => {
-  return new Promise(async (resolve, reject) => {
-      
-    // Get original text from object in incoming event
-    const originalText = await s3.send(new GetObjectCommand({
-      Bucket: event.Records[0].s3.bucket.name,
-      Key: event.Records[0].s3.object.key
-    }))
- 
-    // Translate the text
-    const data = await translateText(await originalText.Body.transformToString('utf-8'), targetLanguage)
+const doTranslation = async (Bucket, Key, targetLanguage) => {
+  // Get original text from object in incoming event
+  const originalText = await s3.send(new GetObjectCommand({ Bucket, Key }))
 
-    // Save the new translation
-    const baseObjectName = event.Records[0].s3.object.key.replace('.txt','')
-    await s3.send(new PutObjectCommand({
-      Bucket: event.Records[0].s3.bucket.name,
-      Key: `translations/${baseObjectName}-${targetLanguage}.txt`,
-      Body: data.TranslatedText,
-      ContentType: 'text/plain'
-    }))
-    resolve()
-  })
+  // Translate the text
+  const data = await translateText(await originalText.Body.transformToString('utf-8'), targetLanguage)
+
+  // Save the new translation
+  const baseObjectName = Key.replace('.txt','')
+  await s3.send(new PutObjectCommand({
+    Bucket,
+    Key: `translations/${baseObjectName}-${targetLanguage}.txt`,
+    Body: data.TranslatedText,
+    ContentType: 'text/plain'
+  }))
 }
 
 /**
