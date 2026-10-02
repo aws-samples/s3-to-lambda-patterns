@@ -21,7 +21,7 @@ const { DynamoDBDocumentClient, BatchWriteCommand } = require('@aws-sdk/lib-dyna
 const s3 = new S3Client({})
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}))
-const { v4: uuidv4 } = require('uuid')
+const { randomUUID } = require('crypto')
 
 const ddbTable = process.env.DDBtable 
 
@@ -103,7 +103,7 @@ const ddbLoader = async (data) => {
         params.RequestItems[ddbTable].push({
           PutRequest: {
             Item: {
-              ID: uuidv4(),
+              ID: randomUUID(),
               ...item
             }
           }
