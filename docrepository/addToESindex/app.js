@@ -16,6 +16,7 @@
 
 'use strict'
 
+const crypto = require('crypto')
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
 const { ComprehendClient, DetectEntitiesCommand } = require('@aws-sdk/client-comprehend')
 const s3 = new S3Client({ region: process.env.AWS_REGION })
@@ -51,7 +52,8 @@ const processDocument = async (event) => {
 
   // Payload object for ES
   let payload = {
-    id: Date.now(),
+    // Deterministic ID, so reprocessing a file updates its existing document
+    id: crypto.createHash('sha256').update(`${Bucket}/${Key}`).digest('hex'),
     index: type,
     content: {
       Key,

@@ -25,6 +25,20 @@ const documentClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 
 
 const LanguageCode = 'en'
 
+// DetectSentiment accepts at most 5,000 bytes of UTF-8 text, so longer
+// transcripts are analyzed using their first 5,000 bytes
+const MAX_SENTIMENT_BYTES = 5000
+const truncateToBytes = (text, maxBytes) => {
+  let bytes = 0
+  let end = 0
+  for (const char of text) {
+    bytes += Buffer.byteLength(char)
+    if (bytes > maxBytes) break
+    end += char.length
+  }
+  return text.slice(0, end)
+}
+
 const processRecord = async (record) => {
   // S3 event keys are URL-encoded, with spaces as '+'
   const Key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
@@ -39,11 +53,14 @@ const processRecord = async (record) => {
   const originalText = JSON.parse(await response.Body.transformToString('utf-8'))
   const Text = originalText.results.transcripts[0].transcript
 
+  // Comprehend rejects empty text (e.g. a silent recording)
+  if (!Text) return console.log(`No transcript text in ${Key}, skipping`)
+
   // Do sentiment analysis
   console.log('Transcript: ', Text)
   const sentiment = await comprehend.send(new DetectSentimentCommand({
     LanguageCode,
-    Text
+    Text: truncateToBytes(Text, MAX_SENTIMENT_BYTES)
   }))
   console.log(`Sentiment result: ${sentiment.Sentiment}`)
 

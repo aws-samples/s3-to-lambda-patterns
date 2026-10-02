@@ -58,7 +58,7 @@ const doTranslation = async (message) => {
   const data = await translateText(await originalText.Body.transformToString('utf-8'), message.Language)
 
   // Save the new translation
-  const baseObjectName = message.Key.replace('.txt','')
+  const baseObjectName = message.Key.replace(/\.txt$/, '')
   await s3.send(new PutObjectCommand({
     Bucket: process.env.OutputBucket,
     Key: `${baseObjectName}-${message.Language}.txt`,

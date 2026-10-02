@@ -15,7 +15,13 @@
 
 'use strict'
 
+const crypto = require('crypto')
 const { indexDocument } = require('./indexDocument')
+
+// Deterministic document ID, so reprocessing a file (or batch) updates its
+// existing document instead of adding a duplicate
+const documentId = (bucket, key, batchNumber = 0) =>
+  crypto.createHash('sha256').update(`${bucket}/${key}#${batchNumber}`).digest('hex')
 
 // The standard Lambda handler
 exports.handler = async (event) => {
@@ -24,7 +30,7 @@ exports.handler = async (event) => {
   try {
     // Payload object for ES
     let payload = {
-      id: Date.now(),
+      id: documentId(event.detail.bucket, event.detail.key, event.detail.batchNumber),
       index: event.detail.type,
       content: {
         Key: event.detail.key,
@@ -35,7 +41,7 @@ exports.handler = async (event) => {
 
     // Images use labels instead of entities
     if (event["detail-type"] === "NewImage" ) {
-      payload.entities = event.detail.labels
+      payload.content.entities = event.detail.labels.map((label) => label.Name)
     }
  
     console.log('Payload: ', JSON.stringify(payload, null, 2))

@@ -45,6 +45,8 @@ sam deploy --guided
 * RequiredWords: comma-separated words that must all be detected in the image text for a match (default empty, which skips the text check).
 * MinConfidence: minimum Rekognition confidence for labels and words (default `70`).
 
+Labels and words are case-sensitive and must match what Rekognition returns (for example `Cat`, not `cat`). Values can contain apostrophes, but not double quotes.
+
 ## How it works
 
 * Upload an image file (ending in the suffix '.jpg' or '.png') to the target S3 bucket.

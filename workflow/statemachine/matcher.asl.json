@@ -5,13 +5,22 @@
   "States": {
     "Setup": {
       "Type": "Pass",
-      "Comment": "Turns the comma-separated template parameters into arrays, ignoring empty entries",
+      "Comment": "Stores the template parameters as plain strings. They are not embedded in JSONata expressions, so values containing quotes (like Don't) are safe",
       "Assign": {
         "bucket": "{% $states.input.bucket %}",
         "key": "{% $states.input.key %}",
-        "requiredLabels": "{% [$split('${RequiredLabels}', ',').$trim()[$ != '']] %}",
-        "requiredWords": "{% [$split('${RequiredWords}', ',').$trim()[$ != '']] %}",
+        "requiredLabelsParam": "${RequiredLabels}",
+        "requiredWordsParam": "${RequiredWords}",
         "minConfidence": "{% $number('${MinConfidence}') %}"
+      },
+      "Next": "ParseParameters"
+    },
+    "ParseParameters": {
+      "Type": "Pass",
+      "Comment": "Turns the comma-separated parameters into arrays, ignoring empty entries",
+      "Assign": {
+        "requiredLabels": "{% [$split($requiredLabelsParam, ',').$trim()[$ != '']] %}",
+        "requiredWords": "{% [$split($requiredWordsParam, ',').$trim()[$ != '']] %}"
       },
       "Next": "CheckLabels?"
     },
