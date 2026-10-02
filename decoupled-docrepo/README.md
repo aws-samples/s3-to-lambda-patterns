@@ -47,7 +47,7 @@ The department buckets use [Amazon S3 Event Notifications with Amazon EventBridg
 }
 ```
 
-The incoming event contains the bucket name in `detail.bucket.name` and the URL-encoded object key in `detail.object.key` (see `parseS3event/parserFunction/localTestEvent.json`). The parser decodes the key and publishes this event to the default bus for the downstream applications:
+The incoming event contains the bucket name in `detail.bucket.name` and the object key in `detail.object.key` (not URL-encoded, unlike S3 event notifications sent directly to Lambda) (see `parseS3event/parserFunction/localTestEvent.json`). The parser publishes this event to the default bus for the downstream applications:
 
 ```json
 {

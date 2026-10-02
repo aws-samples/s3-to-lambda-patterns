@@ -1,5 +1,6 @@
-// S3 object keys in EventBridge events are URL-encoded
-const getObjectKey = (event) => decodeURIComponent(event.detail.object.key.replace(/\+/g, ' '))
+// Unlike S3 event notifications sent directly to Lambda, object keys in
+// S3 EventBridge events are not URL-encoded, so they can be used as-is
+const getObjectKey = (event) => event.detail.object.key
 
 // The standard Lambda handler
 

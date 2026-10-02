@@ -109,7 +109,7 @@ EventPattern:
 }
 ```
 
-* The Lambda functions read the bucket name from `event.detail.bucket.name` and the object key from `event.detail.object.key`. Object keys in these events are URL-encoded, so the functions decode the key before using it.
+* The Lambda functions read the bucket name from `event.detail.bucket.name` and the object key from `event.detail.object.key`. Unlike S3 event notifications sent directly to Lambda, object keys in these events are **not** URL-encoded, so the functions use the key as-is.
 
 ==============================================
 
