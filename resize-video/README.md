@@ -38,7 +38,7 @@ cd s3-to-lambda-patterns/resize-video
 sam build
 sam deploy --guided
 ```
-`sam build` also builds the FFmpeg Lambda layer. It downloads the current static FFmpeg release for Linux arm64 from [John Van Sickle's FFmpeg builds](https://johnvansickle.com/ffmpeg/), checks it against the published MD5 checksum, and packages the `ffmpeg` and `ffprobe` binaries so the function can use them at `/opt/bin/`. The function runs on the arm64 (AWS Graviton) architecture.
+`sam build` also builds the FFmpeg Lambda layer. It downloads a pinned static FFmpeg release (set by `FFMPEG_VERSION` in `ffmpegLayer/Makefile`) for Linux arm64 from [John Van Sickle's FFmpeg builds](https://johnvansickle.com/ffmpeg/), verifies it against the SHA-256 pinned in the Makefile, and packages the `ffmpeg` and `ffprobe` binaries so the function can use them at `/opt/bin/`. The function runs on the arm64 (AWS Graviton) architecture.
 
 3. During the prompts:
 - Enter a name prefix for the source S3 bucket (the template appends your account ID and Region).
