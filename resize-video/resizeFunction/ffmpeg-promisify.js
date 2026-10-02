@@ -14,9 +14,8 @@ ffmpeg.setFfmpegPath(ffmpegPath)
 ffmpeg.setFfprobePath(ffprobePath)
 
 // Configure S3
-const AWS = require("aws-sdk");
-AWS.config.update({ region: process.env.AWS_REGION })
-const s3 = new AWS.S3({ apiVersion: "2006-03-01" })
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3")
+const s3 = new S3Client({})
 const crypto = require("crypto")
 const fs = require("fs")
 const path = require("path")
@@ -74,7 +73,7 @@ const ffCreateSnippets = async (source, start, snippetSize, key) => {
           Bucket: process.env.SnippetsBucketName,
           Key: outputKey,
         }
-        await s3.putObject(params).promise()
+        await s3.send(new PutObjectCommand(params))
         console.log('S3 write complete for: ', outputKey)
 
         resolve("done")

@@ -25,7 +25,7 @@ Resources:
     Properties:
       CodeUri: translatorFunction/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       MemorySize: 128
       Environment:
         Variables:

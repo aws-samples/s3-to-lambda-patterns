@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGIONs
-const rekognition = new AWS.Rekognition({apiVersion: '2016-06-27'})
+const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-rekognition')
+const rekognition = new RekognitionClient({ region: process.env.AWS_REGION })
 
 const handler = async function(event) {
 
@@ -32,7 +31,7 @@ const handler = async function(event) {
     MinConfidence: 70
   }
 
-  const data = await rekognition.detectLabels(params).promise()
+  const data = await rekognition.send(new DetectLabelsCommand(params))
 
   const filteredResult = data.Labels.filter(function(item){
     if (item.Name === 'Dog' || item.Name === 'Cat') return item

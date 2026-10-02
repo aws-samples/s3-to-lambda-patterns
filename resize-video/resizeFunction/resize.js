@@ -5,9 +5,8 @@
 'use strict'
 
 // Configure S3
-const AWS = require('aws-sdk')
-AWS.config.update({ region: process.env.AWS_REGION })
-const s3 = new AWS.S3({ apiVersion: '2006-03-01' })
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
+const s3 = new S3Client({})
 
 // Set ffpmeg
 const ffmpegPath = (process.env.localTest) ? require('@ffmpeg-installer/ffmpeg').path : '/opt/bin/ffmpeg'
@@ -41,10 +40,10 @@ const resizeVideo = async (record) => {
 	// Get signed URL for source object
 	const Key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '))
 
-	const data = await s3.getObject({
+	const data = await s3.send(new GetObjectCommand({
 		Bucket: record.s3.bucket.name,
 		Key
-	}).promise()
+	}))
 
 	// Use generated local filenames - never derive filesystem paths from the S3 key
 	const jobId = crypto.randomBytes(16).toString('hex')
@@ -53,7 +52,7 @@ const resizeVideo = async (record) => {
 
 	// Save original to tmp directory
 	console.log('Saving downloaded file to ', tempFile)
-	fs.writeFileSync(tempFile, data.Body)
+	fs.writeFileSync(tempFile, Buffer.from(await data.Body.transformToByteArray()))
 
 	// S3 key for the resized video in the output bucket
 	const outputFilename = `${Key.replace(/\.mp4$/i, '')}-smaller.mp4`
@@ -75,11 +74,11 @@ const resizeVideo = async (record) => {
 
 	// Upload to S3
 	console.log(`Uploading ${tempOutput} to ${outputFilename}`)
-	await s3.putObject({
+	await s3.send(new PutObjectCommand({
 		Bucket: process.env.OutputBucketName,
 		Key: outputFilename,
 		Body: tmpData
-	}).promise()
+	}))
 	console.log(`Object written to ${process.env.OutputBucketName}`)
 
 	// Clean up temp files

@@ -7,11 +7,10 @@ const app = express()
 const port = process.env.PORT || 3001
 const bodyParser = require('body-parser')
 
-const AWS = require('aws-sdk')
-AWS.config.update({region: 'us-east-1'})
+const { DynamoDB } = require('@aws-sdk/client-dynamodb')
 
-const ddb = new AWS.DynamoDB() 
-const ddbGeo = require('dynamodb-geo')
+const ddb = new DynamoDB({ region: 'us-east-1' }) 
+const ddbGeo = require('dynamodb-geo-v3')
 
 const config = new ddbGeo.GeoDataManagerConfiguration(ddb, 'askJames-wheresStarbucks')
 config.hashKeyLength = 5

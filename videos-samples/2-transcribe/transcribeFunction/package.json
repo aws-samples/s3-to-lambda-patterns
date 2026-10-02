@@ -10,6 +10,6 @@
   "author": "AWS Serverless",
   "license": "MIT-0",
   "dependencies": {
-    "aws-sdk": "^2.814.0"
+    "@aws-sdk/client-transcribe": "^3.1145.0"
   }
 }

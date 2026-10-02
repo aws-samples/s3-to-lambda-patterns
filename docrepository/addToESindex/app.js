@@ -16,10 +16,10 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const s3 = new AWS.S3()
-const comprehend = new AWS.Comprehend({apiVersion: '2017-11-27'})
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
+const { ComprehendClient, DetectEntitiesCommand } = require('@aws-sdk/client-comprehend')
+const s3 = new S3Client({ region: process.env.AWS_REGION })
+const comprehend = new ComprehendClient({ region: process.env.AWS_REGION })
 
 const { indexDocument } = require('./indexDocument')
 
@@ -60,8 +60,8 @@ const processDocument = async (event) => {
   }
 
   // Load text from S3
-  const s3obj = await s3.getObject({ Bucket, Key }).promise()
-  const Text = s3obj.Body.toString('utf-8')
+  const s3obj = await s3.send(new GetObjectCommand({ Bucket, Key }))
+  const Text = await s3obj.Body.transformToString('utf-8')
 
   // Processing different between images and PDF/DOCX
   if (type === "images") {
@@ -71,10 +71,10 @@ const processDocument = async (event) => {
     payload.content.entities = labels.map((label) => (label.Name))
   } else {
     // Get entities from Comprehend
-    const result = await comprehend.detectEntities({
+    const result = await comprehend.send(new DetectEntitiesCommand({
       LanguageCode: process.env.language,
       Text
-    }).promise()
+    }))
     // Strip down entities to labels
     payload.content.entities = result.Entities.map((entity) => (entity.Text))
   }

@@ -16,12 +16,13 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION
-const s3 = new AWS.S3()
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb')
+const s3 = new S3Client({ region: process.env.AWS_REGION })
 
 const TableName = process.env.DDBtable
-const docClient = new AWS.DynamoDB.DocumentClient()
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION }))
 
 const { translateText } = require('./translate')
 
@@ -48,22 +49,22 @@ const doTranslation = async (message) => {
   return new Promise(async (resolve, reject) => {
       
     // Get original text from object in incoming event
-    const originalText = await s3.getObject({
+    const originalText = await s3.send(new GetObjectCommand({
       Bucket: message.Bucket,
       Key: message.Key
-    }).promise()
+    }))
  
     // Translate the text
-    const data = await translateText(originalText.Body.toString('utf-8'), message.Language)
+    const data = await translateText(await originalText.Body.transformToString('utf-8'), message.Language)
 
     // Save the new translation
     const baseObjectName = message.Key.replace('.txt','')
-    await s3.putObject({
+    await s3.send(new PutObjectCommand({
       Bucket: process.env.OutputBucket,
       Key: `${baseObjectName}-${message.Language}.txt`,
       Body: data.TranslatedText,
       ContentType: 'text/plain'
-    }).promise()
+    }))
     resolve()
   })
 }
@@ -71,14 +72,14 @@ const doTranslation = async (message) => {
 // Save single item to DynamoDB
 const saveToDDB = async (data, Status) => {
   try {
-    await docClient.put({
+    await docClient.send(new PutCommand({
       TableName,
       Item: {
         ID: `${data.Bucket}/${data.Key}`,
         Language: `${data.Language}`,
         Status
       }
-    }).promise()
+    }))
   } catch (err) {
     console.error(`Error: ${err}`)
   }

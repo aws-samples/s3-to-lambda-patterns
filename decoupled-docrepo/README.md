@@ -36,7 +36,7 @@ Important: this application uses various AWS services and there are costs associ
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-* [NodeJS 12.x installed](https://nodejs.org/en/download/)
+* [Node.js 24.x installed](https://nodejs.org/en/download/)
 
 ## Installation Instructions
 

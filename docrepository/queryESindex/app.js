@@ -15,8 +15,11 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
+const { SignatureV4 } = require('@smithy/signature-v4')
+const { Sha256 } = require('@aws-crypto/sha256-js')
+const { HttpRequest } = require('@smithy/protocol-http')
+const { NodeHttpHandler } = require('@smithy/node-http-handler')
+const { defaultProvider } = require('@aws-sdk/credential-provider-node')
 
 // Invoked by API Gateway HTTP APIs.
 
@@ -48,35 +51,38 @@ exports.handler = async (event) => {
 }
 
 const queryES = async (event) => {
-  return new Promise((resolve, reject) => {
-    const endpoint = new AWS.Endpoint(process.env.domain)
-    let request = new AWS.HttpRequest(endpoint, process.env.AWS_REGION)
-    const document = event.content
-  
-    request.method = 'GET'
-    request.path += '/_search?q=' + event.queryStringParameters.q
-    request.headers['host'] = process.env.domain
-    request.headers['Content-Type'] = 'application/json';
-
-    const credentials = new AWS.EnvironmentCredentials()
-    console.log(credentials)
-    const signer = new AWS.Signers.V4(request, 'es')
-    signer.addAuthorization(credentials, new Date())
-  
-    const client = new AWS.HttpClient()
-    client.handleRequest(request, null, function(response) {
-      console.log(response.statusCode + ' ' + response.statusMessage)
-      let responseBody = ''
-      response.on('data', function (chunk) {
-        responseBody += chunk;
-      });
-      response.on('end', function (chunk) {
-        console.log('Response body: ' + responseBody)
-        resolve(responseBody)
-      });
-    }, function(error) {
-      console.log('Error: ' + error)
-      reject()
-    })
+  const request = new HttpRequest({
+    method: 'GET',
+    protocol: 'https:',
+    hostname: process.env.domain,
+    path: '/_search',
+    query: { q: event.queryStringParameters.q },
+    headers: {
+      'host': process.env.domain,
+      'Content-Type': 'application/json'
+    }
   })
+
+  const signer = new SignatureV4({
+    credentials: defaultProvider(),
+    region: process.env.AWS_REGION,
+    service: 'es',
+    sha256: Sha256
+  })
+  const signedRequest = await signer.sign(request)
+
+  const client = new NodeHttpHandler()
+  try {
+    const { response } = await client.handle(signedRequest)
+    console.log(response.statusCode + ' ' + response.reason)
+    let responseBody = ''
+    for await (const chunk of response.body) {
+      responseBody += chunk
+    }
+    console.log('Response body: ' + responseBody)
+    return responseBody
+  } catch (error) {
+    console.log('Error: ' + error)
+    throw error
+  }
 }

@@ -84,21 +84,21 @@ Resources:
     Properties:
       CodeUri: eventConsumer1/
       Handler: app.handler
-      Runtime: nodejs14.x
+      Runtime: nodejs24.x
 
   EventConsumerFunction2:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: eventConsumer2/
       Handler: app.handler
-      Runtime: nodejs14.x
+      Runtime: nodejs24.x
 
   EventConsumerFunction3:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: eventConsumer3/
       Handler: app.handler
-      Runtime: nodejs14.x
+      Runtime: nodejs24.x
 
   # EventBridge rule - invokes EventConsumerFunction 
   EventRule:

@@ -17,9 +17,9 @@
 // This is the function you will need in your Lambda to make the backend work.
 // Follow along in the tutorial to see how to set this up.
 
-const AWS = require('aws-sdk')
-AWS.config.update({ region: process.env.REGION })
-const s3 = new AWS.S3();
+const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
+const s3 = new S3Client({ region: process.env.REGION });
 
 const uploadBucket = '<< ENTER YOUR BUCKET NAME HERE >>'   // << LOOK!
 
@@ -41,19 +41,17 @@ const getUploadURL = async function() {
 //    ACL: 'public-read',   // Optional if you want the object to be publicly readable
   };
 
-  return new Promise((resolve, reject) => {
-    // Get signed URL
-    let uploadURL = s3.getSignedUrl('putObject', s3Params)
-    resolve({
-      "statusCode": 200,
-      "isBase64Encoded": false,
-      "headers": {
-        "Access-Control-Allow-Origin": "*"
-      },
-      "body": JSON.stringify({
-          "uploadURL": uploadURL,
-          "photoFilename": `${actionId}.jpg`
-      })
+  // Get signed URL (expires in 900 seconds, the same default as SDK v2)
+  let uploadURL = await getSignedUrl(s3, new PutObjectCommand(s3Params), { expiresIn: 900 })
+  return {
+    "statusCode": 200,
+    "isBase64Encoded": false,
+    "headers": {
+      "Access-Control-Allow-Origin": "*"
+    },
+    "body": JSON.stringify({
+        "uploadURL": uploadURL,
+        "photoFilename": `${actionId}.jpg`
     })
-  })
+  }
 }

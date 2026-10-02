@@ -13,8 +13,8 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-const AWS = require('aws-sdk')
-const stepFunctions = new AWS.StepFunctions({ region: process.env.AWS_REGION })
+const { SFNClient, StartExecutionCommand } = require('@aws-sdk/client-sfn')
+const stepFunctions = new SFNClient({ region: process.env.AWS_REGION })
 
 // The standard Lambda handler
 exports.handler = async (event) => {
@@ -44,6 +44,6 @@ const startExecution = async (event) => {
         })
     }    
     console.log(params)
-    const result = await stepFunctions.startExecution(params).promise()
+    const result = await stepFunctions.send(new StartExecutionCommand(params))
     console.log(result)
 }

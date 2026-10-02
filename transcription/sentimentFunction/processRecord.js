@@ -15,31 +15,33 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION
-const comprehend = new AWS.Comprehend()
-const s3 = new AWS.S3()
-const documentClient = new AWS.DynamoDB.DocumentClient()
+const { ComprehendClient, DetectSentimentCommand } = require('@aws-sdk/client-comprehend')
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb')
+const comprehend = new ComprehendClient({ region: process.env.AWS_REGION })
+const s3 = new S3Client({ region: process.env.AWS_REGION })
+const documentClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION }))
 
 const LanguageCode = 'en'
 
 const processRecord = async (record) => {
   // Load JSON object
-  const response = await s3.getObject({
+  const response = await s3.send(new GetObjectCommand({
     Bucket: record.s3.bucket.name,
     Key: record.s3.object.key
-  }).promise()
+  }))
 
   // Extract the transcript
-  const originalText = JSON.parse(response.Body.toString('utf-8'))
+  const originalText = JSON.parse(await response.Body.transformToString('utf-8'))
   const Text = originalText.results.transcripts[0].transcript
 
   // Do sentiment analysis
   console.log('Transcript: ', Text)
-  const sentiment = await comprehend.detectSentiment({
+  const sentiment = await comprehend.send(new DetectSentimentCommand({
     LanguageCode,
     Text
-  }).promise()
+  }))
   console.log(`Sentiment result ${sentiment}`)
 
   // Store in DynamoDB
@@ -58,7 +60,7 @@ const processRecord = async (record) => {
   }
 
   // Return promise to map in event handler
-  return documentClient.put(params).promise()
+  return documentClient.send(new PutCommand(params))
 }
 
 module.exports = { processRecord }

@@ -15,10 +15,9 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
 
-const s3 = new AWS.S3()
+const s3 = new S3Client({ region: process.env.AWS_REGION })
 const pdf = require('pdf-parse')
 
 // Invoked when a PDF is put into the source
@@ -52,23 +51,24 @@ const processDocument = async (event) => {
   console.log(`Bucket: ${Bucket}, Key: ${Key}`)
 
   // Get content from source S3 object
-  const result = await s3.getObject({
+  const result = await s3.send(new GetObjectCommand({
     Bucket,
     Key
-  }).promise()
+  }))
+  const body = Buffer.from(await result.Body.transformToByteArray())
 
   try {
     // Extract text from PDF
-    const data = await pdf(result.Body)
+    const data = await pdf(body)
     console.log('PDF text length: ', data.text.length)
 
     // Write result to staging S3 bucket
-    console.log(await s3.putObject({
+    console.log(await s3.send(new PutObjectCommand({
       Bucket: process.env.OutputBucket,
       Key: `pdf/${Key}.txt`,
       Body: data.text,
       ContentType: 'application/text'
-    }).promise())
+    })))
 
   } catch (err) {
     console.error(`Handler error: ${err}`)

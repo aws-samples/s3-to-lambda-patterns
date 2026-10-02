@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require("aws-sdk")
-AWS.config.region = ( process.env.AWS_REGION || 'us-east-1' )
-const s3 = new AWS.S3()
+const { S3Client, GetObjectCommand, PutObjectCommand } = require("@aws-sdk/client-s3")
+const s3 = new S3Client({ region: ( process.env.AWS_REGION || 'us-east-1' ) })
 
 // Returns object from S3
 
@@ -27,15 +26,15 @@ const s3 = new AWS.S3()
 // }
 
 async function getS3object(params) {
-  return new Promise((resolve, reject) => {
-    s3.getObject(params, function(err, data) {
-      if (err) {
-        console.error('getS3object error: ', err, err.stack) // an error occurred
-        reject(err)
-      } 
-      resolve (data)
-    })
-  })
+  try {
+    const data = await s3.send(new GetObjectCommand(params))
+    // Buffer the streamed Body so callers can use Body.toString()
+    data.Body = Buffer.from(await data.Body.transformToByteArray())
+    return data
+  } catch (err) {
+    console.error('getS3object error: ', err, err.stack) // an error occurred
+    throw err
+  }
 }
 
 // Puts object to S3 //
@@ -52,15 +51,12 @@ async function getS3object(params) {
 
 async function putS3object(params) {
   console.log('putS3object params: ', params)
-  return new Promise((resolve, reject) => {
-    s3.putObject(params, function(err, data) {
-      if (err) {
-        console.log('putS3object error: ', err, err.stack) // an error occurred
-        reject(err)
-      } 
-      resolve (data)
-    })
-  })
+  try {
+    return await s3.send(new PutObjectCommand(params))
+  } catch (err) {
+    console.log('putS3object error: ', err, err.stack) // an error occurred
+    throw err
+  }
 }
 
 module.exports = {

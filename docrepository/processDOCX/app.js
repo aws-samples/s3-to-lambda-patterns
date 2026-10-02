@@ -15,10 +15,9 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
 
-const s3 = new AWS.S3()
+const s3 = new S3Client({ region: process.env.AWS_REGION })
 const mammoth = require('mammoth')
 
 // Invoked when a DOCX is put into the source
@@ -51,15 +50,16 @@ const processDocument = async (event) => {
   console.log(`Bucket: ${Bucket}, Key: ${Key}`)
 
   // Get content from source S3 object
-  const result = await s3.getObject({
+  const result = await s3.send(new GetObjectCommand({
     Bucket,
     Key
-  }).promise()
+  }))
+  const body = Buffer.from(await result.Body.transformToByteArray())
 
   console.log(result)
   try {
     // Extract text from DOCX
-    const text = (await mammoth.extractRawText(result.Body)).value    
+    const text = (await mammoth.extractRawText({ buffer: body })).value    
 
     // Splits sentences and removes empty lines
     const lines = text.split('\n').filter((line) => (line !== ''))
@@ -68,12 +68,12 @@ const processDocument = async (event) => {
     console.log('DOCX text length: ', cleanedText.length)
 
     // Write result to staging S3 bucket
-    console.log(await s3.putObject({
+    console.log(await s3.send(new PutObjectCommand({
       Bucket: process.env.OutputBucket,
       Key: `docx/${Key}.txt`,
       Body: cleanedText,
       ContentType: 'application/text'
-    }).promise())
+    })))
 
   } catch (err) {
     console.error(`Handler error: ${err}`)

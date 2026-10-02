@@ -15,12 +15,13 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION
-const comprehend = new AWS.Comprehend()
+const { ComprehendClient, DetectSentimentCommand } = require('@aws-sdk/client-comprehend')
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb')
+const comprehend = new ComprehendClient({ region: process.env.AWS_REGION })
 
 const { getS3object, putS3object }  = require('./s3')
-const documentClient = new AWS.DynamoDB.DocumentClient()
+const documentClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region: process.env.AWS_REGION }))
 
 exports.handler = async (event) => {
   const records = event.Records
@@ -60,7 +61,7 @@ exports.handler = async (event) => {
         }
 
         console.log('Params: ', params)
-        const ddbResult = await documentClient.put(params).promise()
+        const ddbResult = await documentClient.send(new PutCommand(params))
         console.log ('DDBresult: ', ddbResult)
       })
     )
@@ -75,7 +76,7 @@ const doSentimentAnalysis = async (Text) => {
     Text
   }
 
-  const result = await comprehend.detectSentiment(params).promise()
+  const result = await comprehend.send(new DetectSentimentCommand(params))
   console.log('doSentimentAnalysis: ', result)
   return result
 }

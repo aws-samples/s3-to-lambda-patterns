@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const s3 = new AWS.S3()
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3')
+const s3 = new S3Client({})
 
 const pdf = require('pdf-parse')
 
@@ -51,13 +50,15 @@ exports.handler = async (event) => {
 // Read text from PDF document in S3
 const processDocument = async (event) => {
   // Get content from source S3 object
-  const result = await s3.getObject({
+  const result = await s3.send(new GetObjectCommand({
     Bucket: event.detail.bucket,
     Key: event.detail.key
-  }).promise()
+  }))
+  // SDK v3 returns the Body as a stream
+  const body = Buffer.from(await result.Body.transformToByteArray())
 
   // Extract text from PDF
-  const data = await pdf(result.Body)
+  const data = await pdf(body)
   console.log('PDF text length: ', data.text.length)
   return data.text
 }

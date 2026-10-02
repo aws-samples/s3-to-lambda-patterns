@@ -18,7 +18,7 @@ See a video of how to use this repo at: https://youtu.be/f0sE_dNrimU.
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-* [NodeJS 12.x installed](https://nodejs.org/en/download/)
+* [NodeJS 24.x installed](https://nodejs.org/en/download/)
 
 ## Installation Instructions
 

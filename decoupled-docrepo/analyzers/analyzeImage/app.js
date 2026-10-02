@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const rekognition = new AWS.Rekognition({apiVersion: '2016-06-27'})
+const { RekognitionClient, DetectLabelsCommand } = require('@aws-sdk/client-rekognition')
+const rekognition = new RekognitionClient({})
 const { putEvent } = require('./eventbridge')
 
 // JPG converter - sends image to Rekognition to detect
@@ -50,13 +49,14 @@ const processImage = async (event) => {
         Name: event.detail.key
       }
     }, 
-    MaxLabels: process.env.MaxLabels, 
-    MinConfidence: process.env.MinConfidence
+    // Env vars are strings - SDK v3 does not coerce them to numbers
+    MaxLabels: Number(process.env.MaxLabels), 
+    MinConfidence: Number(process.env.MinConfidence)
   }
   console.log('Params: ', params)
 
   // Send image to Rekognition
-  const data = await rekognition.detectLabels(params).promise()
+  const data = await rekognition.send(new DetectLabelsCommand(params))
   // Extract key output attributes
   const labels = data.Labels.map((label) => ({Name: label.Name, Confidence: label.Confidence}))
   console.log('Rekognition labels: ', labels)

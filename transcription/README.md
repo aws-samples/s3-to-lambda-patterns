@@ -22,7 +22,7 @@ To learn more about how this application works, see the article on the AWS Compu
 ## Requirements
 
 * AWS CLI already configured with Administrator permission
-* [NodeJS 12.x installed](https://nodejs.org/en/download/)
+* [NodeJS 24.x installed](https://nodejs.org/en/download/)
 
 ## Installation Instructions
 

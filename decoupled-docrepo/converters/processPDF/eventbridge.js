@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const eventbridge = new AWS.EventBridge()
+const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge')
+const eventbridge = new EventBridgeClient({})
 
 const MAX_EVENTS = 10
 
@@ -36,7 +35,7 @@ const putEvent = async (appEvent) => {
   }
   console.log('--- Params ---')
   console.log(params)
-  const result = await eventbridge.putEvents(params).promise()
+  const result = await eventbridge.send(new PutEventsCommand(params))
   console.log('--- Response ---')
   console.log(result)
 }
@@ -69,7 +68,7 @@ const putEvents = async (appEvent) => {
     }
     console.log('--- Params ---')
     console.log(params)
-    const result = await eventbridge.putEvents(params).promise()
+    const result = await eventbridge.send(new PutEventsCommand(params))
     console.log('--- Response ---')
     console.log(result)
   }

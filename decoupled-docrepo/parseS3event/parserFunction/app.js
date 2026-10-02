@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const eventbridge = new AWS.EventBridge()
+const { EventBridgeClient, PutEventsCommand } = require('@aws-sdk/client-eventbridge')
+const eventbridge = new EventBridgeClient({})
 
 // Invoked when a S3 event occurs.
 
@@ -43,7 +42,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const result = await eventbridge.putEvents(params).promise()
+    const result = await eventbridge.send(new PutEventsCommand(params))
     console.log(result)
   } catch (err) {
     console.error(`Handler error: ${err}`)

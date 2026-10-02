@@ -15,37 +15,28 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const translate = new AWS.Translate()
+const { TranslateClient, TranslateTextCommand } = require('@aws-sdk/client-translate')
+const translate = new TranslateClient({ region: process.env.AWS_REGION })
 
 // The maximum number of characters you can submit in a single Translate request.
 // This truncates the input, so only the first MAX_LENGTH characters will be translated.
 const MAX_LENGTH = 5000   
 
 const translateText = async (originalText, targetLanguageCode) => {
-  return new Promise((resolve, reject) => {
-    const params = {
-        Text: originalText.substring(0, MAX_LENGTH),
-        SourceLanguageCode: "auto",
-        TargetLanguageCode: targetLanguageCode
-    }
+  const params = {
+      Text: originalText.substring(0, MAX_LENGTH),
+      SourceLanguageCode: "auto",
+      TargetLanguageCode: targetLanguageCode
+  }
 
-    try {
-      translate.translateText(params, (err, data) => {
-        if (err) {
-          console.error(`Error: ${err}`)
-          reject(err)
-        }
-
-        console.log(`Data: ${data}`)
-        if (data) resolve(data)
-      })
-    } catch (err) {
-        console.error(err)
-        reject(err)
-    }
-  })
+  try {
+    const data = await translate.send(new TranslateTextCommand(params))
+    console.log(`Data: ${data}`)
+    return data
+  } catch (err) {
+    console.error(`Error: ${err}`)
+    throw err
+  }
 }
 
 module.exports = { translateText }

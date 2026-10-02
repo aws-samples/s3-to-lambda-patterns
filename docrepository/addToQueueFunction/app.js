@@ -15,9 +15,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
-const sqs = new AWS.SQS({apiVersion: '2012-11-05'})
+const { SQSClient, SendMessageBatchCommand } = require('@aws-sdk/client-sqs')
+const sqs = new SQSClient({ region: process.env.AWS_REGION })
 
 let messages = []
 
@@ -82,7 +81,7 @@ const addToSQS = async (messages) => {
       try {
         batchCount++
         console.log(`Trying batch: ${batchCount}`)
-        const result = await sqs.sendMessageBatch(params).promise()
+        const result = await sqs.send(new SendMessageBatchCommand(params))
         console.log(`Success: ${result}`)
       } catch (err) {
         console.error(`Error: ${err}`)

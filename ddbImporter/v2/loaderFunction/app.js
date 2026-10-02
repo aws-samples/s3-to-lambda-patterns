@@ -13,11 +13,11 @@
   SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION 
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
+const { DynamoDBDocumentClient, BatchWriteCommand } = require('@aws-sdk/lib-dynamodb')
 
 const ddbTable = process.env.DDBtable 
-const docClient = new AWS.DynamoDB.DocumentClient()
+const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}))
 let batchCount 
 
 // The Lambda handler
@@ -66,7 +66,7 @@ const saveToDDB = async (item_data) => {
   try {
     batchCount++
     console.log('Trying batch: ', batchCount)
-    const result = await docClient.batchWrite(params).promise()
+    const result = await docClient.send(new BatchWriteCommand(params))
     console.log('Success: ', result)
   } catch (err) {
     console.error('Error: ', err)

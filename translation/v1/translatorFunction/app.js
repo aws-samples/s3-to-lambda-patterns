@@ -16,9 +16,8 @@
 
 'use strict'
 
-const AWS = require('aws-sdk')
-AWS.config.region = process.env.AWS_REGION
-const s3 = new AWS.S3()
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3')
+const s3 = new S3Client({ region: process.env.AWS_REGION })
 
 const { translateText } = require('./translate')
 
@@ -54,22 +53,22 @@ const doTranslation = async (event, targetLanguage) => {
   return new Promise(async (resolve, reject) => {
       
     // Get original text from object in incoming event
-    const originalText = await s3.getObject({
+    const originalText = await s3.send(new GetObjectCommand({
       Bucket: event.Records[0].s3.bucket.name,
       Key: event.Records[0].s3.object.key
-    }).promise()
+    }))
  
     // Translate the text
-    const data = await translateText(originalText.Body.toString('utf-8'), targetLanguage)
+    const data = await translateText(await originalText.Body.transformToString('utf-8'), targetLanguage)
 
     // Save the new translation
     const baseObjectName = event.Records[0].s3.object.key.replace('.txt','')
-    await s3.putObject({
+    await s3.send(new PutObjectCommand({
       Bucket: event.Records[0].s3.bucket.name,
       Key: `translations/${baseObjectName}-${targetLanguage}.txt`,
       Body: data.TranslatedText,
       ContentType: 'text/plain'
-    }).promise()
+    }))
     resolve()
   })
 }

@@ -8,5 +8,8 @@
   },
   "keywords": [],
   "author": "James Beswick",
-  "license": "MIT-0"
+  "license": "MIT-0",
+  "dependencies": {
+    "@aws-sdk/client-sfn": "^3.1145.0"
+  }
 }

@@ -32,7 +32,7 @@ Resources:
     Properties:
       CodeUri: addToQueueFunction/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       Timeout: 30
       MemorySize: 256
       Environment:
@@ -62,7 +62,7 @@ Resources:
     Properties:
       CodeUri: loaderFunction/
       Handler: app.handler
-      Runtime: nodejs12.x
+      Runtime: nodejs24.x
       Timeout: 10
       MemorySize: 128
       ReservedConcurrentExecutions: 1
